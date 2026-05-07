@@ -38,7 +38,9 @@
      data-anio="{{ ex.anio }}"
      data-etapa="{{ ex.etapa }}">
     {% if ex._imagen %}
-    <img src="{{ root }}exercises/{{ institucion }}/{{ tema }}/{{ ex._id }}/{{ ex._imagen }}" alt="Ejercicio {{ ex._id }}" loading="lazy">
+    <div class="card-img-wrapper">
+      <img src="{{ root }}exercises/{{ institucion }}/{{ tema }}/{{ ex._id }}/{{ ex._imagen }}" alt="Ejercicio {{ ex._id }}" loading="lazy">
+    </div>
     {% else %}
     <div class="placeholder-img">Sin imagen</div>
     {% endif %}

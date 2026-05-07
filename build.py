@@ -20,18 +20,24 @@ REQUIRED_FIELDS = {"institucion", "tema", "subtemas", "dificultad", "anio", "eta
 VALID_DIFICULTAD = {"facil", "intermedio", "dificil"}
 VALID_ETAPA = {"provincial", "nacional", "internacional"}
 VALID_TEMAS = {
-    "mecanica", "optica", "termodinamica",
-    "electromagnetismo", "astronomia-observacional", "astrofisica",
+    "coordenadas-celestes", "mecanica-celeste", "optica",
+    "instrumentos", "astrofisica", "cosmologia",
+    "magnitudes", "radiacion", "galaxias",
 }
 
 TOPIC_DISPLAY = {
-    "mecanica": "Mecánica",
+    "coordenadas-celestes": "Coordenadas Celestes y Tiempo",
+    "mecanica-celeste": "Mecánica Celeste",
     "optica": "Óptica",
-    "termodinamica": "Termodinámica",
-    "electromagnetismo": "Electromagnetismo",
-    "astronomia-observacional": "Astronomía Observacional",
+    "instrumentos": "Instrumentos",
     "astrofisica": "Astrofísica",
+    "cosmologia": "Cosmología",
+    "magnitudes": "Magnitudes",
+    "radiacion": "Radiación",
+    "galaxias": "Galaxias",
 }
+
+FORMULAS_DIR = Path("formulas")
 
 
 def load_exercises():
@@ -128,17 +134,36 @@ def build_site(exercises):
     with open(SITE_DIR / "exercises.json", "w", encoding="utf-8") as f:
         json.dump(exercises_json, f, ensure_ascii=False, indent=2)
 
+    # Discover which topics have formula sheet images
+    # Maps topic slug -> image filename (e.g. "optica" -> "optica.png")
+    formula_images = {}
+    if FORMULAS_DIR.exists():
+        for img_path in FORMULAS_DIR.iterdir():
+            if img_path.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".svg"):
+                formula_images[img_path.stem] = img_path.name
+
+    # Build a complete topic map: all 9 big categories, per institution.
+    # Ensures every topic appears on the homepage even with 0 exercises.
+    # Guarantee at least the default institution exists.
+    if "olimpiada-argentina" not in institutions:
+        institutions["olimpiada-argentina"] = {}
+    all_institutions = {}
+    for inst in institutions:
+        all_institutions[inst] = {}
+        for tema in TOPIC_DISPLAY:
+            all_institutions[inst][tema] = institutions[inst].get(tema, [])
+
     # Render index page
     tmpl_index = env.get_template("index.html")
     html = tmpl_index.render(
-        institutions=institutions,
+        institutions=all_institutions,
         topic_display=TOPIC_DISPLAY,
     )
     with open(SITE_DIR / "index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
-    # Render topic pages
-    for inst, topics in institutions.items():
+    # Render topic pages (for all topics, even empty ones)
+    for inst, topics in all_institutions.items():
         inst_dir = SITE_DIR / inst
         inst_dir.mkdir(parents=True, exist_ok=True)
         for tema, exs in topics.items():
@@ -172,6 +197,7 @@ def build_site(exercises):
                     institucion=inst,
                     tema=tema,
                     tema_display=TOPIC_DISPLAY.get(tema, tema),
+                    formula_image=formula_images.get(tema),
                 )
                 with open(ex_dir / "index.html", "w", encoding="utf-8") as f:
                     f.write(html)
@@ -192,6 +218,13 @@ def build_site(exercises):
     contribute_src = Path("contribute")
     if contribute_src.exists():
         shutil.copytree(contribute_src, SITE_DIR / "contribute", dirs_exist_ok=True)
+
+    # Copy formula sheet images
+    if FORMULAS_DIR.exists() and formula_images:
+        formulas_out = SITE_DIR / "formulas"
+        formulas_out.mkdir(parents=True, exist_ok=True)
+        for slug, filename in formula_images.items():
+            shutil.copy2(FORMULAS_DIR / filename, formulas_out / filename)
 
     print(f"Built site with {len(exercises)} exercises into {SITE_DIR}/")
 

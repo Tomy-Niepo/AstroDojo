@@ -33,7 +33,18 @@
   <p class="fuente">{{ exercise.fuente }}</p>
 
   {% if exercise.solucion %}
-  <a href="{{ exercise.solucion }}" target="_blank" rel="noopener" class="btn-solution">Ver solucion</a>
+  <div class="exercise-actions">
+    <a href="{{ exercise.solucion }}" target="_blank" rel="noopener" class="btn-solution">Ver solución</a>
+  </div>
+  {% endif %}
+
+  {% if formula_image %}
+  <section class="formula-sheet">
+    <h2>Hoja de fórmulas — {{ tema_display }}</h2>
+    <div class="formula-sheet-image">
+      <img src="{{ root }}formulas/{{ formula_image }}" alt="Hoja de fórmulas: {{ tema_display }}">
+    </div>
+  </section>
   {% endif %}
 </section>
 {% endblock %}

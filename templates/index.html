@@ -16,7 +16,7 @@
     {% for tema in topics %}
     <a href="{{ inst }}/{{ tema }}/index.html" class="card topic-card">
       <h3>{{ topic_display.get(tema, tema) }}</h3>
-      <p>{{ topics[tema] | length }} ejercicio{{ "s" if topics[tema] | length != 1 }}</p>
+      <span class="chip">{{ topics[tema] | length }} ejercicio{{ "s" if topics[tema] | length != 1 }}</span>
     </a>
     {% endfor %}
   </div>

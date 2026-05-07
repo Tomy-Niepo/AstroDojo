@@ -8,10 +8,13 @@
   --text-muted: #8b949e;
   --accent: #58a6ff;
   --accent-hover: #79b8ff;
+  --accent2: #bc8cff;
   --green: #3fb950;
   --yellow: #d29922;
   --red: #f85149;
   --radius: 8px;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 *, *::before, *::after {
@@ -21,19 +24,70 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+/* CSS Starfield */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1px 1px at 10% 15%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1px 1px at 25% 35%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 40% 70%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 55% 20%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 65% 55%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1.5px 1.5px at 80% 40%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 90% 80%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 15% 60%, rgba(188, 140, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 50% 85%, rgba(88, 166, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 70% 10%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 5% 90%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 35% 5%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 85% 65%, rgba(188, 140, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 45% 45%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 20% 80%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 75% 90%, rgba(88, 166, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 60% 30%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1.5px 1.5px at 95% 50%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 30% 95%, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 8% 42%, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1px 1px at 52% 8%, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1px 1px at 72% 73%, rgba(255, 255, 255, 0.3), transparent),
+    radial-gradient(1px 1px at 18% 28%, rgba(188, 140, 255, 0.25), transparent),
+    radial-gradient(1.5px 1.5px at 88% 18%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1px 1px at 42% 62%, rgba(255, 255, 255, 0.35), transparent);
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 /* Nav */
 header {
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(48, 54, 61, 0.6);
   padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13, 17, 23, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 nav {
@@ -47,6 +101,7 @@ nav {
 nav a {
   color: var(--text);
   text-decoration: none;
+  transition: color 0.2s;
 }
 
 nav a:hover {
@@ -70,22 +125,25 @@ main {
 /* Hero */
 .hero {
   text-align: center;
-  padding: 3rem 0;
+  padding: 4rem 0 3rem;
 }
 
 .hero h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 2.75rem;
+  margin-bottom: 0.75rem;
+  text-shadow: 0 0 30px rgba(88, 166, 255, 0.3), 0 0 60px rgba(188, 140, 255, 0.15);
 }
 
 .hero p {
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 /* Institution */
 .institution {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 .institution h2 {
@@ -105,12 +163,14 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  transition: border-color 0.2s, transform 0.2s;
+  box-shadow: var(--shadow);
+  transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
 }
 
 .card:hover {
   border-color: var(--accent);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 20px rgba(88, 166, 255, 0.15), 0 0 30px rgba(88, 166, 255, 0.08);
 }
 
 /* Topic Card */
@@ -119,6 +179,7 @@ a.topic-card {
   padding: 2rem;
   text-decoration: none;
   color: var(--text);
+  border-left: 3px solid var(--accent2);
 }
 
 .topic-card h3 {
@@ -126,8 +187,15 @@ a.topic-card {
   margin-bottom: 0.5rem;
 }
 
-.topic-card p {
+.chip {
+  display: inline-block;
   color: var(--text-muted);
+  background: rgba(188, 140, 255, 0.12);
+  border: 1px solid rgba(188, 140, 255, 0.25);
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
 }
 
 /* Exercise Card */
@@ -135,6 +203,22 @@ a.exercise-card {
   display: block;
   text-decoration: none;
   color: var(--text);
+}
+
+.exercise-card .card-img-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.exercise-card .card-img-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to top, var(--surface), transparent);
+  pointer-events: none;
 }
 
 .exercise-card img {
@@ -161,8 +245,8 @@ a.exercise-card {
 /* Badges */
 .badge {
   display: inline-block;
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
   margin-right: 0.35rem;
@@ -183,7 +267,7 @@ a.exercise-card {
   display: inline-block;
   padding: 0.1rem 0.4rem;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 999px;
   font-size: 0.7rem;
   color: var(--text-muted);
   margin-right: 0.25rem;
@@ -220,11 +304,11 @@ a.exercise-card {
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
-  padding: 0.4rem 0.8rem;
-  border-radius: var(--radius);
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 0.85rem;
-  transition: all 0.2s;
+  transition: all 0.25s;
 }
 
 .filter-btn:hover {
@@ -262,7 +346,7 @@ a.exercise-card {
 }
 
 .breadcrumbs {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   font-size: 0.9rem;
 }
 
@@ -273,32 +357,39 @@ a.exercise-card {
 
 .exercise-detail h1 {
   font-size: 1.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
 }
 
 .exercise-meta {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .exercise-image {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .exercise-image img {
   width: 100%;
   border-radius: var(--radius);
   border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
 }
 
 .exercise-placeholder {
   height: 300px;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   border-radius: var(--radius);
+}
+
+.exercise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
 }
 
 .btn-solution {
   display: inline-block;
-  margin-top: 1rem;
   padding: 0.6rem 1.2rem;
   background: var(--accent);
   color: #000;
@@ -313,6 +404,26 @@ a.exercise-card {
   background: var(--accent-hover);
 }
 
+/* Formula sheet (inline on exercise page) */
+.formula-sheet {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--border);
+}
+
+.formula-sheet h2 {
+  font-size: 1.25rem;
+  color: var(--accent2);
+  margin-bottom: 1rem;
+}
+
+.formula-sheet-image img {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
 /* Utility */
 .hidden {
   display: none !important;
@@ -322,14 +433,21 @@ a.exercise-card {
 footer {
   border-top: 1px solid var(--border);
   text-align: center;
-  padding: 1.5rem;
+  padding: 2rem 1.5rem;
   color: var(--text-muted);
   font-size: 0.85rem;
+  box-shadow: 0 -1px 20px rgba(88, 166, 255, 0.05);
 }
 
 /* Responsive */
 @media (max-width: 600px) {
   main { padding: 1rem; }
   .hero h1 { font-size: 1.75rem; }
+  .hero { padding: 2.5rem 0 2rem; }
   .card-grid { grid-template-columns: 1fr; }
+
+  /* Hide starfield on mobile for performance */
+  body::before {
+    display: none;
+  }
 }
