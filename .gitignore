@@ -8,3 +8,4 @@ dist/
 venv/
 node_modules/
 .env
+admin.py
