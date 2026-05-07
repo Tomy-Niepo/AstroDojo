@@ -122,13 +122,41 @@ fuente: "Olimpiada Argentina de Astronomía 2024, Provincial"
 
 ## Agregar ejercicios con un LLM / agente
 
-El formato está diseñado para que un LLM pueda procesar PDFs de exámenes y generar las carpetas de ejercicios automáticamente. El flujo típico es:
-
-1. Darle al LLM el PDF de un examen.
-2. Indicarle qué ejercicios extraer (o todos).
-3. El LLM toma un screenshot de cada ejercicio, clasifica el tema y subtemas, y genera la carpeta completa.
+El formato está diseñado para que un LLM pueda procesar PDFs de exámenes y generar las carpetas de ejercicios automáticamente.
 
 **Importante**: el LLM **no** asigna dificultad — eso lo hace un humano después. El campo `dificultad` es opcional.
+
+### `extract_exercises.py`
+
+Script incluido para extraer imágenes de páginas de un PDF. Un agente puede usarlo directamente, o se puede usar manualmente.
+
+```bash
+pip install -r requirements.txt
+
+# Screenshotear todas las páginas de un PDF:
+python extract_exercises.py exam.pdf --outdir screenshots/
+
+# Solo páginas específicas:
+python extract_exercises.py exam.pdf --pages 2,3,5 --outdir screenshots/
+
+# Recortar (top half de la página):
+python extract_exercises.py exam.pdf --pages 3 --crop 0,0,100,50 --outdir screenshots/
+
+# Generar carpetas de ejercicios completas (1 ejercicio por página):
+python extract_exercises.py exam.pdf --pages 1,2,3,4,5 \
+    --institucion olimpiada-argentina --tema mecanica-celeste \
+    --anio 2025 --etapa nacional --exercise-num 1 \
+    --fuente "Olimpiada Argentina de Astronomía 2025, Nacional"
+```
+
+Cuando se pasan los flags de metadata (`--institucion`, `--tema`, `--anio`, `--etapa`, `--fuente`), el script genera la carpeta completa con `meta.yaml` + `imagen.png` lista para commitear. Si no, simplemente extrae PNGs.
+
+### Flujo para un agente/LLM
+
+1. El agente recibe el PDF de un examen.
+2. Usa `extract_exercises.py` para extraer screenshots de cada ejercicio (una página o recorte por ejercicio).
+3. Mira cada imagen, clasifica el tema y subtemas.
+4. Genera las carpetas finales (ya sea con el mismo script usando los flags de metadata, o creando `meta.yaml` a mano).
 
 ### Prompt de referencia
 
@@ -136,13 +164,20 @@ El formato está diseñado para que un LLM pueda procesar PDFs de exámenes y ge
 Tengo el PDF adjunto de un examen de olimpiada de astronomía.
 Necesito que generes las carpetas de ejercicios para el repositorio AstroDojo.
 
+Herramientas disponibles:
+- extract_exercises.py: extrae screenshots de páginas del PDF y opcionalmente
+  genera las carpetas de ejercicios completas. Corré
+  "python extract_exercises.py --help" para ver las opciones.
+- build.py --validate-only: valida que los meta.yaml sean correctos.
+
 Para cada ejercicio del PDF:
-1. Tomá un screenshot del enunciado y guardalo como imagen.png
+1. Usá extract_exercises.py para screenshotear la página del enunciado.
+   Si hay varios ejercicios por página, usá --crop para recortar.
 2. Determiná el tema (uno de: coordenadas-celestes, mecanica-celeste, optica,
-   instrumentos, astrofisica, cosmologia, magnitudes, radiacion, galaxias)
-3. Listá los subtemas relevantes
-4. Generá el meta.yaml (NO incluyas dificultad, eso se asigna después)
-5. Creá la carpeta completa
+   instrumentos, astrofisica, cosmologia, magnitudes, radiacion, galaxias).
+3. Listá los subtemas relevantes.
+4. Generá la carpeta del ejercicio con meta.yaml + imagen.png.
+   NO incluyas dificultad en el meta.yaml — eso se asigna después.
 
 Formato del meta.yaml:
   institucion: <slug-kebab-case>
@@ -161,11 +196,13 @@ Estructura de carpetas:
 Deducí la institución del contenido del PDF (nombre de la olimpiada, país, etc.)
 y convertila a un slug kebab-case (ej: "olimpiada-argentina",
 "olimpiada-latinoamericana", "ioaa").
+
+Cuando termines, corré "python build.py --validate-only" para verificar.
 ```
 
-### Ejemplo: procesar un PDF completo
+### Ejemplo: resultado esperado
 
-Con un PDF de 5 ejercicios de la Olimpiada Argentina 2025 Nacional, el LLM debería generar:
+Con un PDF de 5 ejercicios de la Olimpiada Argentina 2025 Nacional, el agente debería generar:
 
 ```
 exercises/olimpiada-argentina/mecanica-celeste/2025-nacional-ej01/
@@ -178,39 +215,6 @@ exercises/olimpiada-argentina/astrofisica/2025-nacional-ej03/
   meta.yaml
   imagen.png
 ...
-```
-
-### Script de ayuda para agregar en masa
-
-```python
-import yaml
-from pathlib import Path
-import shutil
-
-def add_exercise(institucion, tema, exercise_id, anio, etapa, fuente,
-                 image_path, subtemas=None, solucion=None, dificultad=None):
-    """Agregar un ejercicio al repositorio."""
-    folder = Path(f"exercises/{institucion}/{tema}/{exercise_id}")
-    folder.mkdir(parents=True, exist_ok=True)
-
-    meta = {
-        "institucion": institucion,
-        "tema": tema,
-        "subtemas": subtemas or [],
-        "anio": anio,
-        "etapa": etapa,
-        "fuente": fuente,
-    }
-    if dificultad:
-        meta["dificultad"] = dificultad
-    if solucion:
-        meta["solucion"] = solucion
-
-    with open(folder / "meta.yaml", "w") as f:
-        yaml.dump(meta, f, allow_unicode=True, default_flow_style=False)
-
-    ext = Path(image_path).suffix
-    shutil.copy2(image_path, folder / f"imagen{ext}")
 ```
 
 ### Validar después de agregar
