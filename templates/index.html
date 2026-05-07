@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% set root = "" %}
+
+{% block title %}AstroDojo — Olimpiadas de Astronomía{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <h1>AstroDojo</h1>
+  <p>Estudiá problemas de olimpiadas de astronomía, organizados por tema y dificultad.</p>
+</section>
+
+{% for inst, topics in institutions.items() %}
+<section class="institution">
+  <h2>{{ inst | replace("-", " ") | title }}</h2>
+  <div class="card-grid">
+    {% for tema in topics %}
+    <a href="{{ inst }}/{{ tema }}/" class="card topic-card">
+      <h3>{{ topic_display.get(tema, tema) }}</h3>
+      <p>{{ topics[tema] | length }} ejercicio{{ "s" if topics[tema] | length != 1 }}</p>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

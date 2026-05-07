@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% set root = "../../" %}
+
+{% block title %}{{ tema_display }} — AstroDojo{% endblock %}
+
+{% block content %}
+<section class="topic-header">
+  <a href="{{ root }}" class="breadcrumb">&larr; Inicio</a>
+  <h1>{{ tema_display }}</h1>
+</section>
+
+<section class="filters">
+  <div class="filter-group">
+    <h3>Dificultad</h3>
+    <div class="filter-buttons" id="difficulty-filters">
+      <button class="filter-btn active" data-value="all">Todos</button>
+      <button class="filter-btn" data-value="facil">Fácil</button>
+      <button class="filter-btn" data-value="intermedio">Intermedio</button>
+      <button class="filter-btn" data-value="dificil">Difícil</button>
+    </div>
+  </div>
+  <div class="filter-group">
+    <h3>Subtemas</h3>
+    <div class="filter-buttons" id="subtema-filters">
+      <button class="filter-btn active" data-value="all">Todos</button>
+      {% for s in subtemas %}
+      <button class="filter-btn" data-value="{{ s }}">{{ s | replace("-", " ") | title }}</button>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<div class="card-grid" id="exercise-grid">
+  {% for ex in exercises %}
+  <div class="card exercise-card"
+       data-dificultad="{{ ex.dificultad }}"
+       data-subtemas="{{ ex.subtemas | join(',') }}"
+       data-anio="{{ ex.anio }}"
+       data-etapa="{{ ex.etapa }}">
+    {% if ex._imagen %}
+    <img src="{{ root }}exercises/{{ institucion }}/{{ tema }}/{{ ex._id }}/{{ ex._imagen }}" alt="Ejercicio {{ ex._id }}" loading="lazy">
+    {% else %}
+    <div class="placeholder-img">Sin imagen</div>
+    {% endif %}
+    <div class="card-body">
+      <span class="badge badge-{{ ex.dificultad }}">{{ ex.dificultad | title }}</span>
+      <span class="badge badge-etapa">{{ ex.etapa | title }}</span>
+      <span class="badge badge-anio">{{ ex.anio }}</span>
+      <div class="subtemas">
+        {% for s in ex.subtemas %}
+        <span class="tag">{{ s | replace("-", " ") | title }}</span>
+        {% endfor %}
+      </div>
+      <p class="fuente">{{ ex.fuente }}</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<p id="no-results" class="hidden">No se encontraron ejercicios con esos filtros.</p>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ root }}static/filter.js"></script>
+{% endblock %}

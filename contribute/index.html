@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contribuir — AstroDojo</title>
+  <link rel="stylesheet" href="../static/style.css">
+  <style>
+    .wizard { max-width: 640px; margin: 0 auto; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .step h2 { margin-bottom: 1rem; }
+    .step-indicator { display: flex; gap: 0.5rem; margin-bottom: 2rem; }
+    .step-dot { width: 2rem; height: 4px; border-radius: 2px; background: var(--border); }
+    .step-dot.done { background: var(--accent); }
+
+    label { display: block; margin-bottom: 0.25rem; font-size: 0.9rem; color: var(--text-muted); }
+    select, input[type="text"], input[type="number"] {
+      width: 100%; padding: 0.5rem 0.75rem; background: var(--surface); color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--accent); }
+
+    .btn { display: inline-block; padding: 0.6rem 1.2rem; border-radius: var(--radius);
+      border: none; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s; }
+    .btn-primary { background: var(--accent); color: #000; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--accent); }
+    .btn + .btn { margin-left: 0.5rem; }
+
+    .upload-area {
+      border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem;
+      text-align: center; cursor: pointer; margin-bottom: 1rem; transition: border-color 0.2s;
+    }
+    .upload-area:hover, .upload-area.dragover { border-color: var(--accent); }
+    .upload-area img { max-width: 100%; max-height: 200px; margin-top: 1rem; border-radius: 4px; }
+
+    .queued-list { list-style: none; }
+    .queued-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.75rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 1rem; }
+    .queued-item img { width: 80px; height: 60px; object-fit: cover; border-radius: 4px; }
+    .queued-info { flex: 1; font-size: 0.85rem; }
+    .queued-info strong { display: block; margin-bottom: 0.25rem; }
+    .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.2rem; }
+
+    .export-section { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+    .field-row { display: flex; gap: 1rem; }
+    .field-row > div { flex: 1; }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="../" class="logo">AstroDojo</a>
+      <a href="../contribute/">Contribuir</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="wizard">
+      <div class="step-indicator">
+        <div class="step-dot done" id="dot-0"></div>
+        <div class="step-dot" id="dot-1"></div>
+        <div class="step-dot" id="dot-2"></div>
+        <div class="step-dot" id="dot-3"></div>
+      </div>
+
+      <!-- Step 0: Institution -->
+      <div class="step active" id="step-0">
+        <h2>1. Elegí la institución</h2>
+        <label for="institucion">Institución</label>
+        <select id="institucion">
+          <option value="olimpiada-argentina">Olimpiada Argentina de Astronomía</option>
+        </select>
+        <button class="btn btn-primary" onclick="nextStep(1)">Siguiente</button>
+      </div>
+
+      <!-- Step 1: Shared metadata -->
+      <div class="step" id="step-1">
+        <h2>2. Datos del lote</h2>
+        <p style="color:var(--text-muted);margin-bottom:1rem;">Estos datos se aplican a todos los ejercicios que subas en esta sesión.</p>
+
+        <div class="field-row">
+          <div>
+            <label for="anio">Año</label>
+            <input type="number" id="anio" value="2024" min="1990" max="2099">
+          </div>
+          <div>
+            <label for="etapa">Etapa</label>
+            <select id="etapa">
+              <option value="provincial">Provincial</option>
+              <option value="nacional" selected>Nacional</option>
+              <option value="internacional">Internacional</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="tema">Tema</label>
+        <select id="tema">
+          <option value="mecanica">Mecánica</option>
+          <option value="optica">Óptica</option>
+          <option value="termodinamica">Termodinámica</option>
+          <option value="electromagnetismo">Electromagnetismo</option>
+          <option value="astronomia-observacional">Astronomía Observacional</option>
+          <option value="astrofisica">Astrofísica</option>
+        </select>
+
+        <label for="dificultad-batch">Dificultad</label>
+        <select id="dificultad-batch">
+          <option value="facil">Fácil</option>
+          <option value="intermedio" selected>Intermedio</option>
+          <option value="dificil">Difícil</option>
+        </select>
+
+        <div style="margin-top:0.5rem;">
+          <button class="btn btn-secondary" onclick="nextStep(0)">Atrás</button>
+          <button class="btn btn-primary" onclick="nextStep(2)">Siguiente</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Upload loop -->
+      <div class="step" id="step-2">
+        <h2>3. Subí ejercicios</h2>
+
+        <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()">
+          <p>Arrastrá una imagen o hacé clic para seleccionar</p>
+          <img id="preview" class="hidden" alt="Preview">
+          <input type="file" id="file-input" accept="image/*" style="display:none">
+        </div>
+
+        <label for="subtemas-override">Subtemas (separados por coma, opcional)</label>
+        <input type="text" id="subtemas-override" placeholder="ej: cinematica, energia">
+
+        <label for="dificultad-override">Dificultad (dejar vacío para usar la del lote)</label>
+        <select id="dificultad-override">
+          <option value="">Usar dificultad del lote</option>
+          <option value="facil">Fácil</option>
+          <option value="intermedio">Intermedio</option>
+          <option value="dificil">Difícil</option>
+        </select>
+
+        <div style="margin-top:0.5rem;">
+          <button class="btn btn-secondary" onclick="nextStep(1)">Atrás</button>
+          <button class="btn btn-primary" id="btn-add" onclick="addExercise()" disabled>Agregar otro</button>
+          <button class="btn btn-primary" id="btn-done" onclick="finishAndReview()" disabled>Listo</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Review -->
+      <div class="step" id="step-3">
+        <h2>4. Revisión</h2>
+        <p style="color:var(--text-muted);margin-bottom:1rem;">Revisá los ejercicios antes de exportar.</p>
+        <ul class="queued-list" id="queued-list"></ul>
+
+        <div class="export-section">
+          <button class="btn btn-primary" onclick="downloadZip()">Descargar ZIP</button>
+          <button class="btn btn-secondary" onclick="sendFormspree()">Enviar para revisión</button>
+        </div>
+
+        <div style="margin-top:1rem;">
+          <button class="btn btn-secondary" onclick="nextStep(2)">Agregar más</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>AstroDojo &mdash; Problemas de olimpiadas de astronomía</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    var exercises = [];
+    var currentFile = null;
+    var currentDataURL = null;
+
+    // Step navigation
+    function nextStep(n) {
+      document.querySelectorAll(".step").forEach(function (s) { s.classList.remove("active"); });
+      document.getElementById("step-" + n).classList.add("active");
+      for (var i = 0; i < 4; i++) {
+        document.getElementById("dot-" + i).classList.toggle("done", i <= n);
+      }
+      if (n === 3) renderReview();
+    }
+
+    // File upload
+    var uploadArea = document.getElementById("upload-area");
+    var fileInput = document.getElementById("file-input");
+    var preview = document.getElementById("preview");
+
+    uploadArea.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      uploadArea.classList.add("dragover");
+    });
+    uploadArea.addEventListener("dragleave", function () {
+      uploadArea.classList.remove("dragover");
+    });
+    uploadArea.addEventListener("drop", function (e) {
+      e.preventDefault();
+      uploadArea.classList.remove("dragover");
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener("change", function () {
+      if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file.type.startsWith("image/")) { alert("Solo se aceptan imágenes."); return; }
+      currentFile = file;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        currentDataURL = e.target.result;
+        preview.src = currentDataURL;
+        preview.classList.remove("hidden");
+        document.getElementById("btn-add").disabled = false;
+        document.getElementById("btn-done").disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function buildMeta(idx) {
+      var inst = document.getElementById("institucion").value;
+      var anio = parseInt(document.getElementById("anio").value);
+      var etapa = document.getElementById("etapa").value;
+      var tema = document.getElementById("tema").value;
+      var dif = document.getElementById("dificultad-override").value || document.getElementById("dificultad-batch").value;
+      var subRaw = document.getElementById("subtemas-override").value.trim();
+      var subtemas = subRaw ? subRaw.split(",").map(function (s) { return s.trim().toLowerCase(); }) : [];
+
+      var num = String(idx).padStart(2, "0");
+      var id = anio + "-" + etapa + "-ej" + num;
+
+      return {
+        id: id,
+        meta: {
+          institucion: inst,
+          tema: tema,
+          subtemas: subtemas,
+          dificultad: dif,
+          anio: anio,
+          etapa: etapa,
+          fuente: "Olimpiada Argentina de Astronomía " + anio + ", " + etapa.charAt(0).toUpperCase() + etapa.slice(1)
+        }
+      };
+    }
+
+    function metaToYAML(m) {
+      var lines = [];
+      lines.push("institucion: " + m.institucion);
+      lines.push("tema: " + m.tema);
+      if (m.subtemas.length) {
+        lines.push("subtemas: [" + m.subtemas.join(", ") + "]");
+      } else {
+        lines.push("subtemas: []");
+      }
+      lines.push("dificultad: " + m.dificultad);
+      lines.push("anio: " + m.anio);
+      lines.push("etapa: " + m.etapa);
+      lines.push('fuente: "' + m.fuente + '"');
+      return lines.join("\n") + "\n";
+    }
+
+    function addExercise() {
+      if (!currentFile) return;
+      var info = buildMeta(exercises.length + 1);
+      exercises.push({
+        id: info.id,
+        meta: info.meta,
+        file: currentFile,
+        dataURL: currentDataURL
+      });
+      // Reset form for next
+      currentFile = null;
+      currentDataURL = null;
+      preview.classList.add("hidden");
+      preview.src = "";
+      fileInput.value = "";
+      document.getElementById("subtemas-override").value = "";
+      document.getElementById("dificultad-override").value = "";
+      document.getElementById("btn-add").disabled = true;
+      document.getElementById("btn-done").disabled = exercises.length === 0;
+    }
+
+    function finishAndReview() {
+      // Add current if there's one loaded
+      if (currentFile) addExercise();
+      if (exercises.length === 0) { alert("Agregá al menos un ejercicio."); return; }
+      nextStep(3);
+    }
+
+    function renderReview() {
+      var list = document.getElementById("queued-list");
+      list.innerHTML = "";
+      exercises.forEach(function (ex, i) {
+        var li = document.createElement("li");
+        li.className = "queued-item";
+        li.innerHTML =
+          '<img src="' + ex.dataURL + '" alt="' + ex.id + '">' +
+          '<div class="queued-info">' +
+            '<strong>' + ex.id + '</strong>' +
+            ex.meta.tema + ' · ' + ex.meta.dificultad + ' · ' + ex.meta.etapa + ' ' + ex.meta.anio +
+            (ex.meta.subtemas.length ? '<br>Subtemas: ' + ex.meta.subtemas.join(', ') : '') +
+          '</div>' +
+          '<button class="remove-btn" onclick="removeExercise(' + i + ')">&times;</button>';
+        list.appendChild(li);
+      });
+    }
+
+    function removeExercise(idx) {
+      exercises.splice(idx, 1);
+      renderReview();
+    }
+
+    function dataURLtoBlob(dataurl) {
+      var parts = dataurl.split(",");
+      var mime = parts[0].match(/:(.*?);/)[1];
+      var bstr = atob(parts[1]);
+      var n = bstr.length;
+      var u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      return new Blob([u8arr], { type: mime });
+    }
+
+    function downloadZip() {
+      if (!exercises.length) return;
+      var zip = new JSZip();
+      var inst = exercises[0].meta.institucion;
+
+      exercises.forEach(function (ex) {
+        var folder = "exercises/" + inst + "/" + ex.meta.tema + "/" + ex.id + "/";
+        zip.file(folder + "meta.yaml", metaToYAML(ex.meta));
+        var ext = ex.file.name.split(".").pop();
+        zip.file(folder + "imagen." + ext, dataURLtoBlob(ex.dataURL));
+      });
+
+      zip.generateAsync({ type: "blob" }).then(function (content) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(content);
+        a.download = "astrodojo-exercises.zip";
+        a.click();
+      });
+    }
+
+    function sendFormspree() {
+      if (!exercises.length) return;
+      var payload = exercises.map(function (ex) {
+        return { id: ex.id, meta: metaToYAML(ex.meta), imagen_base64: ex.dataURL };
+      });
+      fetch("https://formspree.io/f/YOUR_FORMSPREE_ID", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({ exercises: payload })
+      }).then(function (res) {
+        if (res.ok) alert("Enviado correctamente. Revisaremos tu contribución.");
+        else alert("Hubo un error al enviar. Intentá con la opción ZIP.");
+      }).catch(function () {
+        alert("Error de red. Intentá con la opción ZIP.");
+      });
+    }
+  </script>
+</body>
+</html>
