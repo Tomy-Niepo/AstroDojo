@@ -28,6 +28,8 @@
     .btn-primary:hover { background: var(--accent-hover); }
     .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
     .btn-secondary:hover { border-color: var(--accent); }
+    .btn-danger { background: #dc3545; color: #fff; }
+    .btn-danger:hover { background: #c0392b; }
     .btn + .btn { margin-left: 0.5rem; }
 
     .upload-area {
@@ -39,13 +41,21 @@
 
     .queued-list { list-style: none; }
     .queued-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-      padding: 0.75rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 1rem; }
-    .queued-item img { width: 80px; height: 60px; object-fit: cover; border-radius: 4px; }
+      padding: 0.75rem; margin-bottom: 0.75rem; }
+    .queued-header { display: flex; align-items: center; gap: 1rem; }
+    .queued-header img { width: 80px; height: 60px; object-fit: cover; border-radius: 4px; }
     .queued-info { flex: 1; font-size: 0.85rem; }
     .queued-info strong { display: block; margin-bottom: 0.25rem; }
-    .remove-btn { background: none; border: none; color: var(--red); cursor: pointer; font-size: 1.2rem; }
+    .queued-actions { display: flex; gap: 0.5rem; }
+    .queued-actions .btn { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
 
-    .export-section { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+    .edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: none; }
+    .edit-form.open { display: block; }
+    .edit-form .field-row { display: flex; gap: 0.75rem; }
+    .edit-form .field-row > div { flex: 1; }
+    .edit-form label { font-size: 0.8rem; }
+    .edit-form select, .edit-form input { font-size: 0.85rem; padding: 0.35rem 0.5rem; margin-bottom: 0.5rem; }
+
     .field-row { display: flex; gap: 1rem; }
     .field-row > div { flex: 1; }
   </style>
@@ -72,7 +82,9 @@
         <h2>1. Elegí la institución</h2>
         <label for="institucion">Institución</label>
         <select id="institucion">
-          <option value="olimpiada-argentina">Olimpiada Argentina de Astronomía</option>
+          {% for inst in institutions %}
+          <option value="{{ inst }}">{{ inst | replace("-", " ") | title }}</option>
+          {% endfor %}
         </select>
         <button class="btn btn-primary" onclick="nextStep(1)">Siguiente</button>
       </div>
@@ -157,15 +169,11 @@
       <!-- Step 3: Review -->
       <div class="step" id="step-3">
         <h2>4. Revisión</h2>
-        <p style="color:var(--text-muted);margin-bottom:1rem;">Revisá los ejercicios antes de exportar.</p>
+        <p style="color:var(--text-muted);margin-bottom:1rem;">Revisá y editá los ejercicios antes de descargar.</p>
         <ul class="queued-list" id="queued-list"></ul>
 
-        <div class="export-section">
+        <div style="margin-top:1.5rem; display:flex; gap:1rem; flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="downloadZip()">Descargar ZIP</button>
-          <button class="btn btn-secondary" onclick="sendFormspree()">Enviar para revisión</button>
-        </div>
-
-        <div style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="nextStep(2)">Agregar más</button>
         </div>
       </div>
@@ -181,6 +189,14 @@
     var exercises = [];
     var currentFile = null;
     var currentDataURL = null;
+
+    var TEMA_DISPLAY = {
+      "coordenadas-celestes": "Coordenadas Celestes y Tiempo",
+      "mecanica-celeste": "Mecánica Celeste",
+      "optica": "Óptica", "instrumentos": "Instrumentos",
+      "astrofisica": "Astrofísica", "cosmologia": "Cosmología",
+      "magnitudes": "Magnitudes", "radiacion": "Radiación", "galaxias": "Galaxias"
+    };
 
     // Step navigation
     function nextStep(n) {
@@ -248,7 +264,7 @@
         dificultad: dif,
         anio: anio,
         etapa: etapa,
-        fuente: "Olimpiada Argentina de Astronomía " + anio + ", " + etapa.charAt(0).toUpperCase() + etapa.slice(1)
+        fuente: inst.replace(/-/g, " ").replace(/\b\w/g, function(c){ return c.toUpperCase(); }) + " " + anio + ", " + etapa.charAt(0).toUpperCase() + etapa.slice(1)
       };
       if (solucion) meta.solucion = solucion;
 
@@ -295,7 +311,6 @@
     }
 
     function finishAndReview() {
-      // Add current if there's one loaded
       if (currentFile) addExercise();
       if (exercises.length === 0) { alert("Agregá al menos un ejercicio."); return; }
       nextStep(3);
@@ -307,19 +322,89 @@
       exercises.forEach(function (ex, i) {
         var li = document.createElement("li");
         li.className = "queued-item";
+        li.id = "queued-" + i;
+
+        var temaDisplay = TEMA_DISPLAY[ex.meta.tema] || ex.meta.tema;
+        var difDisplay = ex.meta.dificultad.charAt(0).toUpperCase() + ex.meta.dificultad.slice(1);
+
         li.innerHTML =
-          '<img src="' + ex.dataURL + '" alt="' + ex.id + '">' +
-          '<div class="queued-info">' +
-            '<strong>' + ex.id + '</strong>' +
-            ex.meta.tema + ' · ' + ex.meta.dificultad + ' · ' + ex.meta.etapa + ' ' + ex.meta.anio +
-            (ex.meta.subtemas.length ? '<br>Subtemas: ' + ex.meta.subtemas.join(', ') : '') +
+          '<div class="queued-header">' +
+            '<img src="' + ex.dataURL + '" alt="' + ex.id + '">' +
+            '<div class="queued-info">' +
+              '<strong>' + ex.id + '</strong>' +
+              temaDisplay + ' · ' + difDisplay + ' · ' + ex.meta.etapa + ' ' + ex.meta.anio +
+              (ex.meta.subtemas.length ? '<br>Subtemas: ' + ex.meta.subtemas.join(', ') : '') +
+              (ex.meta.solucion ? '<br>Solución: ' + ex.meta.solucion : '') +
+            '</div>' +
+            '<div class="queued-actions">' +
+              '<button class="btn btn-secondary" onclick="toggleEdit(' + i + ')">Editar</button>' +
+              '<button class="btn btn-danger" onclick="removeExercise(' + i + ')">Eliminar</button>' +
+            '</div>' +
           '</div>' +
-          '<button class="remove-btn" onclick="removeExercise(' + i + ')">&times;</button>';
+          '<div class="edit-form" id="edit-form-' + i + '">' +
+            '<div class="field-row">' +
+              '<div><label>Tema</label><select id="edit-tema-' + i + '">' +
+                buildTemaOptions(ex.meta.tema) +
+              '</select></div>' +
+              '<div><label>Dificultad</label><select id="edit-dif-' + i + '">' +
+                '<option value="facil"' + (ex.meta.dificultad === "facil" ? " selected" : "") + '>Fácil</option>' +
+                '<option value="intermedio"' + (ex.meta.dificultad === "intermedio" ? " selected" : "") + '>Intermedio</option>' +
+                '<option value="dificil"' + (ex.meta.dificultad === "dificil" ? " selected" : "") + '>Difícil</option>' +
+              '</select></div>' +
+            '</div>' +
+            '<div class="field-row">' +
+              '<div><label>Subtemas (coma-sep.)</label><input type="text" id="edit-sub-' + i + '" value="' + ex.meta.subtemas.join(', ') + '"></div>' +
+              '<div><label>Solución URL</label><input type="text" id="edit-sol-' + i + '" value="' + (ex.meta.solucion || '') + '"></div>' +
+            '</div>' +
+            '<div><label>Fuente</label><input type="text" id="edit-fuente-' + i + '" value="' + ex.meta.fuente + '"></div>' +
+            '<div><label>Reemplazar imagen</label><input type="file" id="edit-img-' + i + '" accept="image/*" onchange="replaceImage(' + i + ', this)"></div>' +
+            '<button class="btn btn-primary" style="margin-top:0.5rem;" onclick="saveEdit(' + i + ')">Guardar cambios</button>' +
+          '</div>';
+
         list.appendChild(li);
       });
     }
 
+    function buildTemaOptions(selected) {
+      var opts = "";
+      for (var key in TEMA_DISPLAY) {
+        opts += '<option value="' + key + '"' + (key === selected ? ' selected' : '') + '>' + TEMA_DISPLAY[key] + '</option>';
+      }
+      return opts;
+    }
+
+    function toggleEdit(idx) {
+      var form = document.getElementById("edit-form-" + idx);
+      form.classList.toggle("open");
+    }
+
+    function saveEdit(idx) {
+      var ex = exercises[idx];
+      ex.meta.tema = document.getElementById("edit-tema-" + idx).value;
+      ex.meta.dificultad = document.getElementById("edit-dif-" + idx).value;
+      var subRaw = document.getElementById("edit-sub-" + idx).value.trim();
+      ex.meta.subtemas = subRaw ? subRaw.split(",").map(function(s){ return s.trim().toLowerCase(); }) : [];
+      ex.meta.fuente = document.getElementById("edit-fuente-" + idx).value.trim();
+      var sol = document.getElementById("edit-sol-" + idx).value.trim();
+      if (sol) { ex.meta.solucion = sol; } else { delete ex.meta.solucion; }
+      renderReview();
+    }
+
+    function replaceImage(idx, input) {
+      if (!input.files.length) return;
+      var file = input.files[0];
+      if (!file.type.startsWith("image/")) { alert("Solo se aceptan imágenes."); return; }
+      exercises[idx].file = file;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        exercises[idx].dataURL = e.target.result;
+        renderReview();
+      };
+      reader.readAsDataURL(file);
+    }
+
     function removeExercise(idx) {
+      if (!confirm("¿Eliminar este ejercicio?")) return;
       exercises.splice(idx, 1);
       renderReview();
     }
@@ -351,23 +436,6 @@
         a.href = URL.createObjectURL(content);
         a.download = "astrodojo-exercises.zip";
         a.click();
-      });
-    }
-
-    function sendFormspree() {
-      if (!exercises.length) return;
-      var payload = exercises.map(function (ex) {
-        return { id: ex.id, meta: metaToYAML(ex.meta), imagen_base64: ex.dataURL };
-      });
-      fetch("https://formspree.io/f/YOUR_FORMSPREE_ID", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({ exercises: payload })
-      }).then(function (res) {
-        if (res.ok) alert("Enviado correctamente. Revisaremos tu contribución.");
-        else alert("Hubo un error al enviar. Intentá con la opción ZIP.");
-      }).catch(function () {
-        alert("Error de red. Intentá con la opción ZIP.");
       });
     }
   </script>

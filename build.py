@@ -208,10 +208,16 @@ def build_site(exercises):
     if STATIC_DIR.exists():
         shutil.copytree(STATIC_DIR, SITE_DIR / "static", dirs_exist_ok=True)
 
-    # Copy contributor wizard
-    contribute_src = Path("contribute")
-    if contribute_src.exists():
-        shutil.copytree(contribute_src, SITE_DIR / "contribute", dirs_exist_ok=True)
+    # Render contributor wizard (template with dynamic institution list)
+    contribute_tmpl = Path("contribute") / "index.html"
+    if contribute_tmpl.exists():
+        contribute_out = SITE_DIR / "contribute"
+        contribute_out.mkdir(parents=True, exist_ok=True)
+        from jinja2 import Template
+        tmpl = Template(contribute_tmpl.read_text(encoding="utf-8"))
+        html = tmpl.render(institutions=all_institutions)
+        with open(contribute_out / "index.html", "w", encoding="utf-8") as f:
+            f.write(html)
 
     # Copy formula sheet images
     if FORMULAS_DIR.exists() and formula_images:
