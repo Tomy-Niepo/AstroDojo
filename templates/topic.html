@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set root = "../../" %}
+{% set root = "../" %}
 
 {% block title %}{{ tema_display }} — AstroDojo{% endblock %}
 
@@ -10,6 +10,17 @@
 </section>
 
 <section class="filters">
+  {% if institutions | length > 1 %}
+  <div class="filter-group">
+    <h3>Institución</h3>
+    <div class="filter-buttons" id="institution-filters">
+      <button class="filter-btn active" data-value="all">Todas</button>
+      {% for inst in institutions %}
+      <button class="filter-btn" data-value="{{ inst }}">{{ inst | replace("-", " ") | title }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
   <div class="filter-group">
     <h3>Dificultad</h3>
     <div class="filter-buttons" id="difficulty-filters">
@@ -33,13 +44,14 @@
 <div class="card-grid" id="exercise-grid">
   {% for ex in exercises %}
   <a href="{{ ex._id }}/index.html" class="card exercise-card"
+     data-institucion="{{ ex.institucion }}"
      data-dificultad="{{ ex.dificultad }}"
      data-subtemas="{{ ex.subtemas | join(',') }}"
      data-anio="{{ ex.anio }}"
      data-etapa="{{ ex.etapa }}">
     {% if ex._imagen %}
     <div class="card-img-wrapper">
-      <img src="{{ root }}exercises/{{ institucion }}/{{ tema }}/{{ ex._id }}/{{ ex._imagen }}" alt="Ejercicio {{ ex._id }}" loading="lazy">
+      <img src="{{ root }}exercises/{{ ex.institucion }}/{{ tema }}/{{ ex._id }}/{{ ex._imagen }}" alt="Ejercicio {{ ex._id }}" loading="lazy">
     </div>
     {% else %}
     <div class="placeholder-img">Sin imagen</div>

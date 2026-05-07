@@ -9,17 +9,12 @@
   <p>Estudiá problemas de olimpiadas de astronomía, organizados por tema y dificultad.</p>
 </section>
 
-{% for inst, topics in institutions.items() %}
-<section class="institution">
-  <h2>{{ inst | replace("-", " ") | title }}</h2>
-  <div class="card-grid">
-    {% for tema in topics %}
-    <a href="{{ inst }}/{{ tema }}/index.html" class="card topic-card">
-      <h3>{{ topic_display.get(tema, tema) }}</h3>
-      <span class="chip">{{ topics[tema] | length }} ejercicio{{ "s" if topics[tema] | length != 1 }}</span>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-{% endfor %}
+<div class="card-grid">
+  {% for tema, exs in topics.items() %}
+  <a href="{{ tema }}/index.html" class="card topic-card">
+    <h3>{{ topic_display.get(tema, tema) }}</h3>
+    <span class="chip">{{ exs | length }} ejercicio{{ "s" if exs | length != 1 }}</span>
+  </a>
+  {% endfor %}
+</div>
 {% endblock %}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set root = "../../../" %}
+{% set root = "../../" %}
 
 {% block title %}Ejercicio {{ exercise._id }} — AstroDojo{% endblock %}
 
@@ -8,7 +8,7 @@
   <nav class="breadcrumbs">
     <a href="{{ root }}index.html" class="breadcrumb">Inicio</a>
     <span class="breadcrumb-sep">/</span>
-    <a href="{{ root }}{{ institucion }}/{{ tema }}/index.html" class="breadcrumb">{{ tema_display }}</a>
+    <a href="{{ root }}{{ tema }}/index.html" class="breadcrumb">{{ tema_display }}</a>
   </nav>
 
   <h1>Ejercicio {{ exercise._id }}</h1>
@@ -24,7 +24,7 @@
 
   {% if exercise._imagen %}
   <div class="exercise-image">
-    <img src="{{ root }}exercises/{{ institucion }}/{{ tema }}/{{ exercise._id }}/{{ exercise._imagen }}" alt="Ejercicio {{ exercise._id }}">
+    <img src="{{ root }}exercises/{{ exercise.institucion }}/{{ tema }}/{{ exercise._id }}/{{ exercise._imagen }}" alt="Ejercicio {{ exercise._id }}">
   </div>
   {% else %}
   <div class="placeholder-img exercise-placeholder">Sin imagen</div>

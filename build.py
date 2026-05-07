@@ -106,14 +106,15 @@ def build_site(exercises):
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
-    # Group exercises by institution, then by topic
-    institutions = {}
+    # Group exercises by topic (across all institutions)
+    topics_map = {}
+    all_institutions = set()
     for ex in exercises:
-        inst = ex.get("institucion", "unknown")
         tema = ex.get("tema", "unknown")
-        institutions.setdefault(inst, {})
-        institutions[inst].setdefault(tema, [])
-        institutions[inst][tema].append(ex)
+        topics_map.setdefault(tema, [])
+        topics_map[tema].append(ex)
+        all_institutions.add(ex.get("institucion", "unknown"))
+    all_institutions = sorted(all_institutions)
 
     # Build exercises.json for client-side filtering
     exercises_json = []
@@ -142,65 +143,58 @@ def build_site(exercises):
             if img_path.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp", ".svg"):
                 formula_images[img_path.stem] = img_path.name
 
-    # Build a complete topic map: all 9 big categories, per institution.
-    # Ensures every topic appears on the homepage even with 0 exercises.
-    # Guarantee at least the default institution exists.
-    if "olimpiada-argentina" not in institutions:
-        institutions["olimpiada-argentina"] = {}
-    all_institutions = {}
-    for inst in institutions:
-        all_institutions[inst] = {}
-        for tema in TOPIC_DISPLAY:
-            all_institutions[inst][tema] = institutions[inst].get(tema, [])
+    # Build complete topic map — every canonical topic, even if it has 0 exercises
+    all_topics = {}
+    for tema in TOPIC_DISPLAY:
+        all_topics[tema] = topics_map.get(tema, [])
 
     # Render index page
     tmpl_index = env.get_template("index.html")
     html = tmpl_index.render(
-        institutions=all_institutions,
+        topics=all_topics,
         topic_display=TOPIC_DISPLAY,
     )
     with open(SITE_DIR / "index.html", "w", encoding="utf-8") as f:
         f.write(html)
 
-    # Render topic pages (for all topics, even empty ones)
-    for inst, topics in all_institutions.items():
-        inst_dir = SITE_DIR / inst
-        inst_dir.mkdir(parents=True, exist_ok=True)
-        for tema, exs in topics.items():
-            topic_dir = inst_dir / tema
-            topic_dir.mkdir(parents=True, exist_ok=True)
+    # Render topic pages — one page per topic, exercises from all institutions
+    tmpl_topic = env.get_template("topic.html")
+    tmpl_exercise = env.get_template("exercise.html")
 
-            # Collect all subtemas for this topic
-            all_subtemas = set()
-            for ex in exs:
-                for s in ex.get("subtemas", []):
-                    all_subtemas.add(s)
+    for tema, exs in all_topics.items():
+        topic_dir = SITE_DIR / tema
+        topic_dir.mkdir(parents=True, exist_ok=True)
 
-            tmpl_topic = env.get_template("topic.html")
-            html = tmpl_topic.render(
-                institucion=inst,
+        # Collect subtemas and institutions present in this topic
+        topic_subtemas = set()
+        topic_institutions = set()
+        for ex in exs:
+            for s in ex.get("subtemas", []):
+                topic_subtemas.add(s)
+            topic_institutions.add(ex.get("institucion", "unknown"))
+
+        html = tmpl_topic.render(
+            tema=tema,
+            tema_display=TOPIC_DISPLAY.get(tema, tema),
+            exercises=exs,
+            subtemas=sorted(topic_subtemas),
+            institutions=sorted(topic_institutions),
+        )
+        with open(topic_dir / "index.html", "w", encoding="utf-8") as f:
+            f.write(html)
+
+        # Render exercise detail pages
+        for ex in exs:
+            ex_dir = topic_dir / ex["_id"]
+            ex_dir.mkdir(parents=True, exist_ok=True)
+            html = tmpl_exercise.render(
+                exercise=ex,
                 tema=tema,
                 tema_display=TOPIC_DISPLAY.get(tema, tema),
-                exercises=exs,
-                subtemas=sorted(all_subtemas),
+                formula_image=formula_images.get(tema),
             )
-            with open(topic_dir / "index.html", "w", encoding="utf-8") as f:
+            with open(ex_dir / "index.html", "w", encoding="utf-8") as f:
                 f.write(html)
-
-            # Render exercise detail pages
-            tmpl_exercise = env.get_template("exercise.html")
-            for ex in exs:
-                ex_dir = topic_dir / ex["_id"]
-                ex_dir.mkdir(parents=True, exist_ok=True)
-                html = tmpl_exercise.render(
-                    exercise=ex,
-                    institucion=inst,
-                    tema=tema,
-                    tema_display=TOPIC_DISPLAY.get(tema, tema),
-                    formula_image=formula_images.get(tema),
-                )
-                with open(ex_dir / "index.html", "w", encoding="utf-8") as f:
-                    f.write(html)
 
     # Copy exercise images into site
     for ex in exercises:
