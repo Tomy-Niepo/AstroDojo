@@ -41,7 +41,7 @@ exercises/<institucion>/<tema>/<id>/
 institucion: olimpiada-argentina         # slug de la institución (kebab-case)
 tema: mecanica-celeste                   # uno de los 9 temas válidos (ver abajo)
 subtemas: [cinematica, energia]          # lista de subtemas (puede ser vacía: [])
-dificultad: intermedio                   # facil | intermedio | dificil
+dificultad: intermedio                   # (opcional) facil | intermedio | dificil
 anio: 2025                               # año (entero)
 etapa: nacional                          # provincial | nacional | internacional
 fuente: "Olimpiada Argentina de Astronomía 2025, Nacional"
@@ -113,7 +113,6 @@ Donde `meta.yaml` contiene:
 institucion: olimpiada-argentina
 tema: astrofisica
 subtemas: [luminosidad, magnitudes]
-dificultad: facil
 anio: 2024
 etapa: provincial
 fuente: "Olimpiada Argentina de Astronomía 2024, Provincial"
@@ -123,51 +122,73 @@ fuente: "Olimpiada Argentina de Astronomía 2024, Provincial"
 
 ## Agregar ejercicios con un LLM / agente
 
-El formato está diseñado para que un LLM pueda generar ejercicios a partir de capturas de pantalla de problemas. El flujo es:
+El formato está diseñado para que un LLM pueda procesar PDFs de exámenes y generar las carpetas de ejercicios automáticamente. El flujo típico es:
+
+1. Darle al LLM el PDF de un examen.
+2. Indicarle qué ejercicios extraer (o todos).
+3. El LLM toma un screenshot de cada ejercicio, clasifica el tema y subtemas, y genera la carpeta completa.
+
+**Importante**: el LLM **no** asigna dificultad — eso lo hace un humano después. El campo `dificultad` es opcional.
 
 ### Prompt de referencia
 
 ```
-Tengo una imagen de un problema de olimpiada de astronomía. Necesito que generes
-los archivos para AstroDojo.
+Tengo el PDF adjunto de un examen de olimpiada de astronomía.
+Necesito que generes las carpetas de ejercicios para el repositorio AstroDojo.
 
-Datos del problema:
-- Institución: olimpiada-argentina
-- Año: 2025
-- Etapa: nacional
-- Número de ejercicio: 3
-
-Instrucciones:
-1. Mirá la imagen y determiná el tema (uno de: coordenadas-celestes,
-   mecanica-celeste, optica, instrumentos, astrofisica, cosmologia,
-   magnitudes, radiacion, galaxias).
-2. Determiná la dificultad (facil, intermedio, dificil).
-3. Listá los subtemas relevantes.
-4. Generá el meta.yaml con el formato exacto de abajo.
-5. Guardá la imagen como imagen.png en la carpeta correspondiente.
+Para cada ejercicio del PDF:
+1. Tomá un screenshot del enunciado y guardalo como imagen.png
+2. Determiná el tema (uno de: coordenadas-celestes, mecanica-celeste, optica,
+   instrumentos, astrofisica, cosmologia, magnitudes, radiacion, galaxias)
+3. Listá los subtemas relevantes
+4. Generá el meta.yaml (NO incluyas dificultad, eso se asigna después)
+5. Creá la carpeta completa
 
 Formato del meta.yaml:
   institucion: <slug-kebab-case>
   tema: <tema>
   subtemas: [<subtema1>, <subtema2>]
-  dificultad: <facil|intermedio|dificil>
   anio: <año>
   etapa: <provincial|nacional|internacional>
   fuente: "<Nombre de la olimpiada año, Etapa>"
+  solucion: "<url>"  # opcional
 
-La carpeta debe ser: exercises/<institucion>/<tema>/<anio>-<etapa>-ej<numero>/
+Estructura de carpetas:
+  exercises/<institucion>/<tema>/<anio>-<etapa>-ej<numero>/
+    meta.yaml
+    imagen.png
+
+Deducí la institución del contenido del PDF (nombre de la olimpiada, país, etc.)
+y convertila a un slug kebab-case (ej: "olimpiada-argentina",
+"olimpiada-latinoamericana", "ioaa").
 ```
 
-### Agregar en masa con un script
+### Ejemplo: procesar un PDF completo
 
-Para agregar varios ejercicios programáticamente, cada ejercicio necesita:
+Con un PDF de 5 ejercicios de la Olimpiada Argentina 2025 Nacional, el LLM debería generar:
+
+```
+exercises/olimpiada-argentina/mecanica-celeste/2025-nacional-ej01/
+  meta.yaml
+  imagen.png
+exercises/olimpiada-argentina/optica/2025-nacional-ej02/
+  meta.yaml
+  imagen.png
+exercises/olimpiada-argentina/astrofisica/2025-nacional-ej03/
+  meta.yaml
+  imagen.png
+...
+```
+
+### Script de ayuda para agregar en masa
 
 ```python
 import yaml
 from pathlib import Path
+import shutil
 
-def add_exercise(institucion, tema, exercise_id, dificultad, anio, etapa, fuente,
-                 image_path, subtemas=None, solucion=None):
+def add_exercise(institucion, tema, exercise_id, anio, etapa, fuente,
+                 image_path, subtemas=None, solucion=None, dificultad=None):
     """Agregar un ejercicio al repositorio."""
     folder = Path(f"exercises/{institucion}/{tema}/{exercise_id}")
     folder.mkdir(parents=True, exist_ok=True)
@@ -176,34 +197,20 @@ def add_exercise(institucion, tema, exercise_id, dificultad, anio, etapa, fuente
         "institucion": institucion,
         "tema": tema,
         "subtemas": subtemas or [],
-        "dificultad": dificultad,
         "anio": anio,
         "etapa": etapa,
         "fuente": fuente,
     }
+    if dificultad:
+        meta["dificultad"] = dificultad
     if solucion:
         meta["solucion"] = solucion
 
     with open(folder / "meta.yaml", "w") as f:
         yaml.dump(meta, f, allow_unicode=True, default_flow_style=False)
 
-    # Copiar la imagen
-    import shutil
     ext = Path(image_path).suffix
     shutil.copy2(image_path, folder / f"imagen{ext}")
-
-# Ejemplo:
-add_exercise(
-    institucion="olimpiada-argentina",
-    tema="optica",
-    exercise_id="2025-nacional-ej03",
-    dificultad="intermedio",
-    anio=2025,
-    etapa="nacional",
-    fuente="Olimpiada Argentina de Astronomía 2025, Nacional",
-    image_path="/ruta/a/captura.png",
-    subtemas=["refraccion", "lentes"],
-)
 ```
 
 ### Validar después de agregar

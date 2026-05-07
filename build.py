@@ -16,7 +16,7 @@ TEMPLATES_DIR = Path("templates")
 SITE_DIR = Path("site")
 STATIC_DIR = Path("static")
 
-REQUIRED_FIELDS = {"institucion", "tema", "subtemas", "dificultad", "anio", "etapa", "fuente"}
+REQUIRED_FIELDS = {"institucion", "tema", "subtemas", "anio", "etapa", "fuente"}
 VALID_DIFICULTAD = {"facil", "intermedio", "dificil"}
 VALID_ETAPA = {"provincial", "nacional", "internacional"}
 VALID_TEMAS = {
