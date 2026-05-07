@@ -165,13 +165,16 @@ def build_site(exercises):
         topic_dir = SITE_DIR / tema
         topic_dir.mkdir(parents=True, exist_ok=True)
 
-        # Collect subtemas and institutions present in this topic
+        # Collect subtemas, institutions, and years present in this topic
         topic_subtemas = set()
         topic_institutions = set()
+        topic_anios = set()
         for ex in exs:
             for s in ex.get("subtemas", []):
                 topic_subtemas.add(s)
             topic_institutions.add(ex.get("institucion", "unknown"))
+            if ex.get("anio"):
+                topic_anios.add(ex["anio"])
 
         html = tmpl_topic.render(
             tema=tema,
@@ -179,6 +182,7 @@ def build_site(exercises):
             exercises=exs,
             subtemas=sorted(topic_subtemas),
             institutions=sorted(topic_institutions),
+            anios=sorted(topic_anios, reverse=True),
         )
         with open(topic_dir / "index.html", "w", encoding="utf-8") as f:
             f.write(html)

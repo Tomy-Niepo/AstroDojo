@@ -10,6 +10,9 @@
 </section>
 
 <section class="filters">
+  <div class="filter-group">
+    <input type="text" id="search-input" class="search-input" placeholder="Buscar ejercicio...">
+  </div>
   {% if institutions | length > 1 %}
   <div class="filter-group">
     <h3>Institución</h3>
@@ -17,6 +20,17 @@
       <button class="filter-btn active" data-value="all">Todas</button>
       {% for inst in institutions %}
       <button class="filter-btn" data-value="{{ inst }}">{{ inst | replace("-", " ") | title }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% if anios | length > 1 %}
+  <div class="filter-group">
+    <h3>Año</h3>
+    <div class="filter-buttons" id="anio-filters">
+      <button class="filter-btn active" data-value="all">Todos</button>
+      {% for a in anios %}
+      <button class="filter-btn" data-value="{{ a }}">{{ a }}</button>
       {% endfor %}
     </div>
   </div>
@@ -48,7 +62,9 @@
      data-dificultad="{{ ex.dificultad }}"
      data-subtemas="{{ ex.subtemas | join(',') }}"
      data-anio="{{ ex.anio }}"
-     data-etapa="{{ ex.etapa }}">
+     data-etapa="{{ ex.etapa }}"
+     data-fuente="{{ ex.fuente }}"
+     data-id="{{ ex._id }}">
     {% if ex._imagen %}
     <div class="card-img-wrapper">
       <img src="{{ root }}exercises/{{ ex.institucion }}/{{ tema }}/{{ ex._id }}/{{ ex._imagen }}" alt="Ejercicio {{ ex._id }}" loading="lazy">

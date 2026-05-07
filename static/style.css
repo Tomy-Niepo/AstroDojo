@@ -279,6 +279,28 @@ a.exercise-card {
   color: var(--text-muted);
 }
 
+/* Search */
+.search-input {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.55rem 1rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.25s;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
 /* Filters */
 .filters {
   margin-bottom: 2rem;
