@@ -131,6 +131,12 @@ a.topic-card {
 }
 
 /* Exercise Card */
+a.exercise-card {
+  display: block;
+  text-decoration: none;
+  color: var(--text);
+}
+
 .exercise-card img {
   width: 100%;
   aspect-ratio: 4/3;
@@ -247,6 +253,64 @@ a.topic-card {
 .topic-header h1 {
   font-size: 2rem;
   margin-bottom: 1rem;
+}
+
+/* Exercise Detail Page */
+.exercise-detail {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.breadcrumbs {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.breadcrumb-sep {
+  color: var(--text-muted);
+  margin: 0 0.35rem;
+}
+
+.exercise-detail h1 {
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+.exercise-meta {
+  margin-bottom: 1.5rem;
+}
+
+.exercise-image {
+  margin-bottom: 1.5rem;
+}
+
+.exercise-image img {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.exercise-placeholder {
+  height: 300px;
+  margin-bottom: 1.5rem;
+  border-radius: var(--radius);
+}
+
+.btn-solution {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  background: var(--accent);
+  color: #000;
+  text-decoration: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.2s;
+}
+
+.btn-solution:hover {
+  background: var(--accent-hover);
 }
 
 /* Utility */

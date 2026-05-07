@@ -76,6 +76,9 @@ def validate_exercise(meta, path):
     if meta.get("anio") and not isinstance(meta["anio"], int):
         errors.append(f"{path}: anio must be an integer")
 
+    if "solucion" in meta and not isinstance(meta["solucion"], str):
+        errors.append(f"{path}: solucion must be a string (URL)")
+
     return errors
 
 
@@ -118,6 +121,7 @@ def build_site(exercises):
             "anio": ex.get("anio"),
             "etapa": ex.get("etapa"),
             "fuente": ex.get("fuente"),
+            "solucion": ex.get("solucion"),
             "imagen": f"exercises/{ex.get('institucion')}/{ex.get('tema')}/{ex['_id']}/{ex['_imagen']}" if ex.get("_imagen") else None,
         })
 
@@ -157,6 +161,20 @@ def build_site(exercises):
             )
             with open(topic_dir / "index.html", "w", encoding="utf-8") as f:
                 f.write(html)
+
+            # Render exercise detail pages
+            tmpl_exercise = env.get_template("exercise.html")
+            for ex in exs:
+                ex_dir = topic_dir / ex["_id"]
+                ex_dir.mkdir(parents=True, exist_ok=True)
+                html = tmpl_exercise.render(
+                    exercise=ex,
+                    institucion=inst,
+                    tema=tema,
+                    tema_display=TOPIC_DISPLAY.get(tema, tema),
+                )
+                with open(ex_dir / "index.html", "w", encoding="utf-8") as f:
+                    f.write(html)
 
     # Copy exercise images into site
     for ex in exercises:

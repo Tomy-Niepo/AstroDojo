@@ -141,6 +141,9 @@
           <option value="dificil">Difícil</option>
         </select>
 
+        <label for="solucion">Solución URL (opcional)</label>
+        <input type="text" id="solucion" placeholder="ej: https://ejemplo.com/solucion.pdf">
+
         <div style="margin-top:0.5rem;">
           <button class="btn btn-secondary" onclick="nextStep(1)">Atrás</button>
           <button class="btn btn-primary" id="btn-add" onclick="addExercise()" disabled>Agregar otro</button>
@@ -233,18 +236,20 @@
       var num = String(idx).padStart(2, "0");
       var id = anio + "-" + etapa + "-ej" + num;
 
-      return {
-        id: id,
-        meta: {
-          institucion: inst,
-          tema: tema,
-          subtemas: subtemas,
-          dificultad: dif,
-          anio: anio,
-          etapa: etapa,
-          fuente: "Olimpiada Argentina de Astronomía " + anio + ", " + etapa.charAt(0).toUpperCase() + etapa.slice(1)
-        }
+      var solucion = document.getElementById("solucion").value.trim();
+
+      var meta = {
+        institucion: inst,
+        tema: tema,
+        subtemas: subtemas,
+        dificultad: dif,
+        anio: anio,
+        etapa: etapa,
+        fuente: "Olimpiada Argentina de Astronomía " + anio + ", " + etapa.charAt(0).toUpperCase() + etapa.slice(1)
       };
+      if (solucion) meta.solucion = solucion;
+
+      return { id: id, meta: meta };
     }
 
     function metaToYAML(m) {
@@ -260,6 +265,7 @@
       lines.push("anio: " + m.anio);
       lines.push("etapa: " + m.etapa);
       lines.push('fuente: "' + m.fuente + '"');
+      if (m.solucion) lines.push('solucion: "' + m.solucion + '"');
       return lines.join("\n") + "\n";
     }
 
@@ -280,6 +286,7 @@
       fileInput.value = "";
       document.getElementById("subtemas-override").value = "";
       document.getElementById("dificultad-override").value = "";
+      document.getElementById("solucion").value = "";
       document.getElementById("btn-add").disabled = true;
       document.getElementById("btn-done").disabled = exercises.length === 0;
     }

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% set root = "../../../" %}
+
+{% block title %}Ejercicio {{ exercise._id }} — AstroDojo{% endblock %}
+
+{% block content %}
+<section class="exercise-detail">
+  <nav class="breadcrumbs">
+    <a href="{{ root }}index.html" class="breadcrumb">Inicio</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="{{ root }}{{ institucion }}/{{ tema }}/index.html" class="breadcrumb">{{ tema_display }}</a>
+  </nav>
+
+  <h1>Ejercicio {{ exercise._id }}</h1>
+
+  <div class="exercise-meta">
+    <span class="badge badge-{{ exercise.dificultad }}">{{ exercise.dificultad | title }}</span>
+    <span class="badge badge-etapa">{{ exercise.etapa | title }}</span>
+    <span class="badge badge-anio">{{ exercise.anio }}</span>
+    {% for s in exercise.subtemas %}
+    <span class="tag">{{ s | replace("-", " ") | title }}</span>
+    {% endfor %}
+  </div>
+
+  {% if exercise._imagen %}
+  <div class="exercise-image">
+    <img src="{{ root }}exercises/{{ institucion }}/{{ tema }}/{{ exercise._id }}/{{ exercise._imagen }}" alt="Ejercicio {{ exercise._id }}">
+  </div>
+  {% else %}
+  <div class="placeholder-img exercise-placeholder">Sin imagen</div>
+  {% endif %}
+
+  <p class="fuente">{{ exercise.fuente }}</p>
+
+  {% if exercise.solucion %}
+  <a href="{{ exercise.solucion }}" target="_blank" rel="noopener" class="btn-solution">Ver solucion</a>
+  {% endif %}
+</section>
+{% endblock %}

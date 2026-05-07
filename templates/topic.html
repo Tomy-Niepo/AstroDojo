@@ -32,11 +32,11 @@
 
 <div class="card-grid" id="exercise-grid">
   {% for ex in exercises %}
-  <div class="card exercise-card"
-       data-dificultad="{{ ex.dificultad }}"
-       data-subtemas="{{ ex.subtemas | join(',') }}"
-       data-anio="{{ ex.anio }}"
-       data-etapa="{{ ex.etapa }}">
+  <a href="{{ ex._id }}/index.html" class="card exercise-card"
+     data-dificultad="{{ ex.dificultad }}"
+     data-subtemas="{{ ex.subtemas | join(',') }}"
+     data-anio="{{ ex.anio }}"
+     data-etapa="{{ ex.etapa }}">
     {% if ex._imagen %}
     <img src="{{ root }}exercises/{{ institucion }}/{{ tema }}/{{ ex._id }}/{{ ex._imagen }}" alt="Ejercicio {{ ex._id }}" loading="lazy">
     {% else %}
@@ -53,7 +53,7 @@
       </div>
       <p class="fuente">{{ ex.fuente }}</p>
     </div>
-  </div>
+  </a>
   {% endfor %}
 </div>
 
