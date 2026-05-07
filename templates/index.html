@@ -14,7 +14,7 @@
   <h2>{{ inst | replace("-", " ") | title }}</h2>
   <div class="card-grid">
     {% for tema in topics %}
-    <a href="{{ inst }}/{{ tema }}/" class="card topic-card">
+    <a href="{{ inst }}/{{ tema }}/index.html" class="card topic-card">
       <h3>{{ topic_display.get(tema, tema) }}</h3>
       <p>{{ topics[tema] | length }} ejercicio{{ "s" if topics[tema] | length != 1 }}</p>
     </a>

@@ -43,7 +43,28 @@ fuente: "Olimpiada Argentina de Astronomía 2023, Nacional"
 
 ## Usar el wizard de contribución
 
-Entrá a `/contribute` en el sitio. El wizard te guía paso a paso para armar los archivos y descargar un ZIP listo para abrir un PR.
+Entrá a `/contribute` en el sitio. El wizard te guía paso a paso para armar los ejercicios.
+
+Al final tenés dos opciones:
+
+### Opción 1: Descargar ZIP y abrir un PR
+
+1. Hacé clic en **"Descargar ZIP"** en el paso final del wizard.
+2. Descomprimí el ZIP — adentro vas a encontrar la carpeta `exercises/` con la estructura correcta de archivos (`meta.yaml` + `imagen.png` por cada ejercicio).
+3. Hacé un fork de este repositorio en GitHub (botón "Fork" arriba a la derecha).
+4. Cloná tu fork: `git clone https://github.com/TU-USUARIO/AstroDojo.git`
+5. Copiá las carpetas del ZIP descomprimido dentro de tu clon, respetando la estructura (las carpetas van dentro de `exercises/olimpiada-argentina/<tema>/`).
+6. Commiteá y pusheá:
+   ```bash
+   git add exercises/
+   git commit -m "Agregar ejercicios de [año] [etapa]"
+   git push
+   ```
+7. Abrí un Pull Request desde tu fork hacia este repositorio. El CI valida automáticamente que los `meta.yaml` tengan el formato correcto.
+
+### Opción 2: Enviar para revisión
+
+Hacé clic en **"Enviar para revisión"** — esto manda los ejercicios a un formulario donde un mantenedor los revisa y los sube por vos. No necesitás cuenta de GitHub.
 
 ## Desarrollo local
 
