@@ -1,0 +1,11 @@
+_imagen: true
+anio: 2025
+dificultad: intermedio
+etapa: nacional
+fuente: Olimpiada Argentina de Astronomia 2025, Nacional
+institucion: olimpiada-argentina
+solucion: http://oaa.oac.unc.edu.ar/wp-content/blogs.dir/8/files/sites/8/2025/10/Sol_D_PRE_2025.pdf
+subtemas:
+- orbitas
+- velocidad angular
+tema: mecanica-celeste
