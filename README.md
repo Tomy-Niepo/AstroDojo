@@ -64,7 +64,7 @@ solucion: "https://ejemplo.com/sol.pdf"  # (opcional) URL a la solución
 
 ### Convención de ID
 
-El ID es el nombre de la carpeta. Formato sugerido: `<anio>-<etapa>-ej<numero>`, por ejemplo `2025-nacional-ej03`. No es estricto, pero debe ser único dentro de su tema.
+El ID es el nombre de la carpeta. Formato sugerido: `<anio>-<etapa>-<individual/grupal>-ej<numero>`, por ejemplo `2025-nacional-grupal-ej03`. No es estricto, pero debe ser único dentro de su tema.
 
 ### Imagen
 
@@ -78,7 +78,10 @@ La forma más fácil de agregar ejercicios es usando la carpeta de staging `new-
 
 ### Pasos
 
-1. Creá carpetas de ejercicios dentro de `new-exercises/` (estructura plana, sin subcarpetas de institución/tema):
+1. Forkeá el repositorio.
+
+2. Creá la carpetas de ejercicios dentro de `new-exercises/` (estructura plana, sin subcarpetas de institución/tema):
+(Si tu institución no existe todavía, solamente con que un ejercicio nuevo pertenezca a esa institucion la creará automaticamente.)
    ```
    new-exercises/
      2025-nacional-ej03/
@@ -89,14 +92,15 @@ La forma más fácil de agregar ejercicios es usando la carpeta de staging `new-
        imagen.jpg
    ```
 
-2. **(Opcional)** Revisá y editá los ejercicios con la app local:
+3. **(Opcional)** Revisá y editá los ejercicios con la app local:
    ```bash
+   pip install -r requirements.txt
    python review.py
    # Abrí http://localhost:5112
    ```
    La app muestra los ejercicios con sus imágenes, indica errores de validación, y permite editar metadata y reemplazar imágenes.
 
-3. Importá los ejercicios a la estructura correcta:
+4. Importá los ejercicios a la estructura correcta:
    ```bash
    # Preview sin mover nada:
    python import_exercises.py --dry-run
@@ -105,63 +109,19 @@ La forma más fácil de agregar ejercicios es usando la carpeta de staging `new-
    python import_exercises.py
    ```
 
-4. Verificá y hacé el PR:
+5. Verificá corriendo el script `build.py`:
    ```bash
    python build.py --validate-only
+   ```
+
+6. Crea el PR:
+   ```bash
    git add exercises/
    git commit -m "Add new exercises"
    git push
    ```
 
-La carpeta `new-exercises/` está en `.gitignore` — es solo para uso local.
-
----
-
-## Contribuir via Pull Request
-
-Un PR debe **agregar una carpeta** (o varias) dentro de `exercises/`. Nada más. Esto minimiza conflictos entre contribuidores que trabajan en distintas instituciones o temas.
-
-### Pasos
-
-1. Forkeá el repositorio.
-2. Creá la carpeta del ejercicio con la estructura de arriba.
-3. Commiteá solo la carpeta nueva:
-   ```bash
-   git add exercises/<institucion>/<tema>/<id>/
-   git commit -m "Add <id> (<tema>)"
-   git push
-   ```
-4. Abrí un Pull Request. El CI valida automáticamente que los `meta.yaml` sean correctos.
-
-### Institución nueva
-
-Si tu institución no existe todavía, simplemente creá la carpeta. Por ejemplo, para agregar un ejercicio de la Olimpiada Brasileña:
-
-```
-exercises/olimpiada-brasilena/optica/2025-nacional-ej01/
-  meta.yaml
-  imagen.png
-```
-
-No hace falta configurar nada extra — el build detecta instituciones automáticamente.
-
-### Ejemplo mínimo de PR
-
-```
-exercises/olimpiada-argentina/astrofisica/2024-provincial-ej02/
-  meta.yaml
-  imagen.png
-```
-
-Donde `meta.yaml` contiene:
-```yaml
-institucion: olimpiada-argentina
-tema: astrofisica
-subtemas: [luminosidad, magnitudes]
-anio: 2024
-etapa: provincial
-fuente: "Olimpiada Argentina de Astronomía 2024, Provincial"
-```
+La carpeta `new-exercises/` es solo para uso local.
 
 ---
 
@@ -171,58 +131,31 @@ El formato está diseñado para que un LLM pueda procesar PDFs de exámenes y ge
 
 **Importante**: el LLM **no** asigna dificultad — eso lo hace un humano después. El campo `dificultad` es opcional.
 
-### `extract_exercises.py`
+### Imagenes
 
-Script incluido para extraer imágenes de páginas de un PDF. Un agente puede usarlo directamente, o se puede usar manualmente.
+Se recomienda fuertemente instalar alguna herramienta que habilite al agente tomar capturas de PDFs, como `pdftoppm` o `ghostscript`. Si no, el script `extract_excersises.py` esta destinado a ese proposito, pero no siempre funciona correctamente.
 
-```bash
-pip install -r requirements.txt
-
-# Screenshotear todas las páginas de un PDF:
-python extract_exercises.py exam.pdf --outdir screenshots/
-
-# Solo páginas específicas:
-python extract_exercises.py exam.pdf --pages 2,3,5 --outdir screenshots/
-
-# Recortar (top half de la página):
-python extract_exercises.py exam.pdf --pages 3 --crop 0,0,100,50 --outdir screenshots/
-
-# Generar carpetas de ejercicios completas (1 ejercicio por página):
-python extract_exercises.py exam.pdf --pages 1,2,3,4,5 \
-    --institucion olimpiada-argentina --tema mecanica-celeste \
-    --anio 2025 --etapa nacional --exercise-num 1 \
-    --fuente "Olimpiada Argentina de Astronomía 2025, Nacional"
-```
-
-Cuando se pasan los flags de metadata (`--institucion`, `--tema`, `--anio`, `--etapa`, `--fuente`), el script genera la carpeta completa con `meta.yaml` + `imagen.png` lista para commitear. Si no, simplemente extrae PNGs.
-
-### Flujo para un agente/LLM
-
-1. El agente recibe el PDF de un examen.
-2. Usa `extract_exercises.py` para extraer screenshots de cada ejercicio (una página o recorte por ejercicio).
-3. Mira cada imagen, clasifica el tema y subtemas.
-4. Genera las carpetas finales (ya sea con el mismo script usando los flags de metadata, o creando `meta.yaml` a mano).
+Cuando se pasan los flags de metadata (`--institucion`, `--tema`, `--anio`, `--etapa`, `--fuente`), el script genera la carpeta completa con `meta.yaml` + `imagen.png`. Si no, simplemente extrae PNGs.
 
 ### Prompt de referencia
 
 ```
-Tengo el PDF adjunto de un examen de olimpiada de astronomía.
-Necesito que generes las carpetas de ejercicios para el repositorio AstroDojo.
+Tu objetivo es crear archivos para ejercicios de astronomia para un directorio publico a partir de PDFs que existen en este directorio.
 
 Herramientas disponibles:
-- extract_exercises.py: extrae screenshots de páginas del PDF y opcionalmente
+- SI existen, herramientas de terminal para tomar fotos de PDFs
+- extract_exercises.py: Alternativa para extraer screenshots de páginas del PDF y opcionalmente
   genera las carpetas de ejercicios completas. Corré
   "python extract_exercises.py --help" para ver las opciones.
 - build.py --validate-only: valida que los meta.yaml sean correctos.
 
 Para cada ejercicio del PDF:
-1. Usá extract_exercises.py para screenshotear la página del enunciado.
-   Si hay varios ejercicios por página, usá --crop para recortar.
-2. Determiná el tema (uno de: coordenadas-celestes, mecanica-celeste, optica,
-   instrumentos, astrofisica, cosmologia, magnitudes, radiacion, galaxias).
+1. Usá la herramienta dedicada o alternativamente extract_exercises.py para screenshotear la página del enunciado. Si hay varios ejercicios por página o un ejercicio toma mas de una pagina, utiliza la herramienta correctamente o usá --crop para recortar.
+2. Determiná el tema (uno de: coordenadas-celestes, mecanica-celeste, optica, instrumentos, astrofisica, cosmologia, magnitudes, radiacion, galaxias).
 3. Listá los subtemas relevantes.
-4. Generá la carpeta del ejercicio con meta.yaml + imagen.png.
-   NO incluyas dificultad en el meta.yaml — eso se asigna después.
+4. Determina la institucion a la que pertenece. Si hay existentes, asegurate de usar exactamente la misma string que ya esta en uso. SI es una nueva institucion, asigna un string o preguntalo al usuario, de cualquier manera debe ser el mismo siempre para la misma institucion. debe ser en slug kebab-case (ej: "olimpiada-argentina", "olimpiada-latinoamericana", "ioaa").
+5. Generá la carpeta del ejercicio con meta.yaml + imagen.png.
+   NO incluyas dificultad en el meta.yaml.
 
 Formato del meta.yaml:
   institucion: <slug-kebab-case>
@@ -233,63 +166,16 @@ Formato del meta.yaml:
   fuente: "<Nombre de la olimpiada año, Etapa>"
   solucion: "<url>"  # opcional
 
-Estructura de carpetas:
-  exercises/<institucion>/<tema>/<anio>-<etapa>-ej<numero>/
-    meta.yaml
-    imagen.png
+Nuevos ejercicios deberan ir en la carpeta de 'new-exercises', siguiendo el siguiente formato:
 
-Deducí la institución del contenido del PDF (nombre de la olimpiada, país, etc.)
-y convertila a un slug kebab-case (ej: "olimpiada-argentina",
-"olimpiada-latinoamericana", "ioaa").
+new-exercises/
+     <id1>/
+       meta.yaml
+       imagen.png
+     <id2>/
+       meta.yaml
+       imagen.jpg
+donde el <id> indica año, etapa, numero de ejercicio, y si es requerido si fue grupal o individual. Por ejemplo '2025-nacional-grupal-ej03'
 
 Cuando termines, corré "python build.py --validate-only" para verificar.
 ```
-
-### Ejemplo: resultado esperado
-
-Con un PDF de 5 ejercicios de la Olimpiada Argentina 2025 Nacional, el agente debería generar:
-
-```
-exercises/olimpiada-argentina/mecanica-celeste/2025-nacional-ej01/
-  meta.yaml
-  imagen.png
-exercises/olimpiada-argentina/optica/2025-nacional-ej02/
-  meta.yaml
-  imagen.png
-exercises/olimpiada-argentina/astrofisica/2025-nacional-ej03/
-  meta.yaml
-  imagen.png
-...
-```
-
-### Validar después de agregar
-
-```bash
-python build.py --validate-only
-```
-
----
-
-## Usar el wizard de contribución
-
-Entrá a `/contribute` en el sitio. El wizard te guía paso a paso para armar ejercicios y descargar un ZIP con la estructura correcta. Después podés abrir un PR con esos archivos.
-
----
-
-## Desarrollo local
-
-```bash
-pip install pyyaml jinja2
-python build.py
-# Abrí site/index.html en el navegador
-```
-
-### Validar sin construir
-
-```bash
-python build.py --validate-only
-```
-
-### Deploy
-
-El sitio se despliega automáticamente a GitHub Pages vía GitHub Actions en cada push a `main`.
