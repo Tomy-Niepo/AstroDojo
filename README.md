@@ -64,7 +64,7 @@ solucion: "https://ejemplo.com/sol.pdf"  # (opcional) URL a la solución
 
 ### Convención de ID
 
-El ID es el nombre de la carpeta. Formato sugerido: `<anio>-<etapa>-<individual/grupal>-ej<numero>`, por ejemplo `2025-nacional-grupal-ej03`. No es estricto, pero debe ser único dentro de su tema.
+El ID es el nombre de la carpeta. Formato sugerido: `<anio>-<etapa>-<individual/grupal>-<nivel>-ej<numero>`, por ejemplo `2025-nacional-grupal-N1-ej03`. No es estricto, pero debe ser único dentro de su tema.
 
 ### Imagen
 
