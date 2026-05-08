@@ -94,6 +94,85 @@ def save_image(file_storage, dest_dir):
     file_storage.save(str(dest_dir / f"imagen{ext}"))
 
 
+def _git(*args):
+    """Run a git command and return (returncode, stdout, stderr)."""
+    r = subprocess.run(
+        ["git"] + list(args),
+        capture_output=True, text=True, cwd=str(BASE_DIR), timeout=30,
+    )
+    return r.returncode, r.stdout.strip(), r.stderr.strip()
+
+
+def _detect_exercise_changes():
+    """Detect uncommitted changes under exercises/ (new, modified, deleted files).
+
+    Returns a list of dicts: { key, label, kind, files }.
+    """
+    r = subprocess.run(
+        ["git", "status", "--short", "--", "exercises/"],
+        capture_output=True, text=True, cwd=str(BASE_DIR), timeout=30,
+    )
+    if not r.stdout.strip():
+        return []
+
+    groups = {}  # exercise folder key -> { files, statuses }
+    for line in r.stdout.splitlines():
+        if len(line) < 4:
+            continue
+        code = line[:2].strip()
+        path = line[3:]
+        if " -> " in path:
+            path = path.split(" -> ", 1)[1]
+        parts = Path(path).parts
+        if parts[0] == "exercises" and len(parts) >= 4:
+            key = str(Path(*parts[:4]))
+        else:
+            key = path
+        if key not in groups:
+            groups[key] = {"files": [], "statuses": set()}
+        groups[key]["files"].append(path)
+        groups[key]["statuses"].add(code)
+
+    changes = []
+    for key, info in sorted(groups.items()):
+        parts = Path(key).parts
+        statuses = info["statuses"]
+        if statuses <= {"?", "??", "A"}:
+            kind = "add"
+        elif all(s.startswith("D") for s in statuses):
+            kind = "delete"
+        else:
+            kind = "edit"
+        if parts[0] == "exercises" and len(parts) >= 4:
+            label = f"{parts[3]} ({TOPIC_DISPLAY.get(parts[2], parts[2])})"
+        else:
+            label = key
+        changes.append({"key": key, "label": label, "kind": kind, "files": info["files"]})
+    return changes
+
+
+def _build_commit_message(changes):
+    """Generate a default commit message from changes."""
+    if not changes:
+        return ""
+    if len(changes) == 1:
+        c = changes[0]
+        return f"{c['kind'].title()} {c['label']}"
+    adds = [c for c in changes if c["kind"] == "add"]
+    edits = [c for c in changes if c["kind"] == "edit"]
+    deletes = [c for c in changes if c["kind"] == "delete"]
+    parts = []
+    if adds:
+        parts.append(f"Add {len(adds)} exercise{'s' if len(adds) > 1 else ''}")
+    if edits:
+        parts.append(f"Edit {len(edits)} exercise{'s' if len(edits) > 1 else ''}")
+    if deletes:
+        parts.append(f"Delete {len(deletes)} exercise{'s' if len(deletes) > 1 else ''}")
+    title = ", ".join(parts)
+    body = "\n".join(f"- {c['kind'].title()} {c['label']}" for c in changes)
+    return f"{title}\n\n{body}"
+
+
 # ---------------------------------------------------------------------------
 # Templates (inline Jinja2)
 # ---------------------------------------------------------------------------
@@ -159,6 +238,7 @@ LAYOUT = """
   <span class="brand">AstroDojo Review</span>
   <a href="/">Staged Exercises</a>
   <a href="/import">Import All</a>
+  <a href="/commit">Commit &amp; Push</a>
 </nav>
 <div class="container" style="margin-top:1rem;">
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -287,10 +367,48 @@ IMPORT_PAGE = """
 {% endblock %}
 """
 
+COMMIT_PAGE = """
+{% extends layout %}
+{% block title_extra %} — Commit & Push{% endblock %}
+{% block content %}
+<h2 style="margin-bottom:.75rem;">Commit &amp; Push</h2>
+{% if not changes %}
+  <p style="color:var(--muted);">No uncommitted changes in <code>exercises/</code>.</p>
+  <p style="color:var(--muted);font-size:.9rem;margin-top:.5rem;">Import exercises first, then come back here to commit.</p>
+{% else %}
+  <table>
+  <tr><th>Exercise</th><th>Type</th><th>Files</th></tr>
+  {% for c in changes %}
+  <tr>
+    <td>{{ c.label }}</td>
+    <td><span style="font-size:.75rem;
+      {% if c.kind=='add' %}background:#28a745{% elif c.kind=='delete' %}background:#dc3545{% else %}background:#fd7e14{% endif %}
+      ;color:#fff;padding:.15rem .5rem;border-radius:3px;">{{ c.kind | title }}</span></td>
+    <td style="color:var(--muted);font-size:.85rem;">{{ c.files|join(', ') }}</td>
+  </tr>
+  {% endfor %}
+  </table>
+  <form method="post" style="margin-top:1rem;">
+    <label>Commit message</label>
+    <textarea name="message" rows="4" style="margin-bottom:.5rem;">{{ default_message }}</textarea>
+    <div style="display:flex;gap:.5rem;">
+      <button type="submit" name="action" value="commit" class="btn btn-primary">Commit</button>
+      <button type="submit" name="action" value="commit_push" class="btn btn-success">Commit &amp; Push</button>
+    </div>
+  </form>
+{% endif %}
+{% if output is not none %}
+  <h3 style="margin-top:1rem;">Output</h3>
+  <pre class="output">{{ output }}</pre>
+{% endif %}
+{% endblock %}
+"""
+
 _TEMPLATES = {
     "index": INDEX_PAGE,
     "edit": EDIT_PAGE,
     "import": IMPORT_PAGE,
+    "commit": COMMIT_PAGE,
 }
 
 
@@ -435,6 +553,59 @@ def import_page():
             flash(f"Import error: {exc}", "error")
 
     return rp("import", output=output)
+
+
+@app.route("/commit", methods=["GET", "POST"])
+def commit_page():
+    output = None
+
+    if request.method == "POST":
+        action = request.form.get("action", "commit")
+        message = request.form.get("message", "").strip()
+
+        if not message:
+            flash("Commit message is required.", "error")
+            return redirect(url_for("commit_page"))
+
+        changes = _detect_exercise_changes()
+        if not changes:
+            flash("No changes to commit.", "error")
+            return redirect(url_for("commit_page"))
+
+        # Stage all exercise files
+        all_files = []
+        for c in changes:
+            all_files.extend(c["files"])
+
+        for f in all_files:
+            if (BASE_DIR / f).exists():
+                _git("add", f)
+            else:
+                _git("rm", "--cached", "--ignore-unmatch", f)
+
+        # Commit
+        rc, out, err = _git("commit", "-m", message)
+        output = out
+        if err:
+            output += "\n" + err
+        if rc != 0:
+            flash("Commit failed.", "error")
+        else:
+            flash("Committed.", "success")
+
+            if action == "commit_push":
+                rc2, out2, err2 = _git("push")
+                output += "\n\n--- push ---\n" + out2
+                if err2:
+                    output += "\n" + err2
+                if rc2 != 0:
+                    flash("Push failed — see output below.", "error")
+                else:
+                    flash("Pushed to remote.", "success")
+
+    changes = _detect_exercise_changes()
+    default_message = _build_commit_message(changes)
+    return rp("commit", changes=changes, default_message=default_message, output=output)
 
 
 # ---------------------------------------------------------------------------
