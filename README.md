@@ -72,6 +72,51 @@ Un archivo llamado `imagen.<ext>` donde `<ext>` es `png`, `jpg`, `jpeg`, `webp` 
 
 ---
 
+## Contribuir con nuevos ejercicios (recomendado)
+
+La forma más fácil de agregar ejercicios es usando la carpeta de staging `new-exercises/`:
+
+### Pasos
+
+1. Creá carpetas de ejercicios dentro de `new-exercises/` (estructura plana, sin subcarpetas de institución/tema):
+   ```
+   new-exercises/
+     2025-nacional-ej03/
+       meta.yaml
+       imagen.png
+     2025-provincial-ej01/
+       meta.yaml
+       imagen.jpg
+   ```
+
+2. **(Opcional)** Revisá y editá los ejercicios con la app local:
+   ```bash
+   python review.py
+   # Abrí http://localhost:5112
+   ```
+   La app muestra los ejercicios con sus imágenes, indica errores de validación, y permite editar metadata y reemplazar imágenes.
+
+3. Importá los ejercicios a la estructura correcta:
+   ```bash
+   # Preview sin mover nada:
+   python import_exercises.py --dry-run
+
+   # Importar (mueve las carpetas a exercises/<inst>/<tema>/<id>/):
+   python import_exercises.py
+   ```
+
+4. Verificá y hacé el PR:
+   ```bash
+   python build.py --validate-only
+   git add exercises/
+   git commit -m "Add new exercises"
+   git push
+   ```
+
+La carpeta `new-exercises/` está en `.gitignore` — es solo para uso local.
+
+---
+
 ## Contribuir via Pull Request
 
 Un PR debe **agregar una carpeta** (o varias) dentro de `exercises/`. Nada más. Esto minimiza conflictos entre contribuidores que trabajan en distintas instituciones o temas.
