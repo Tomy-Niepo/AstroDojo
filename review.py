@@ -361,13 +361,17 @@ def edit(exercise_id):
     if sol:
         updated["solucion"] = sol
 
+    # Check for existing image on disk so validation doesn't falsely fail
+    folder = STAGING_DIR / exercise_id
+    img_candidates = [p for p in folder.glob("imagen.*") if p.suffix.lower() in ALLOWED_IMG_EXT]
+    if img_candidates or (request.files.get("imagen") and request.files["imagen"].filename):
+        updated["_imagen"] = True
+
     errors = validate_meta(updated)
     if errors:
         for e in errors:
             flash(e, "error")
         return redirect(url_for("edit", exercise_id=exercise_id))
-
-    folder = STAGING_DIR / exercise_id
     with open(folder / "meta.yaml", "w", encoding="utf-8") as f:
         yaml.dump(updated, f, allow_unicode=True, default_flow_style=False)
 
