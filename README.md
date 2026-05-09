@@ -72,29 +72,32 @@ Un archivo llamado `imagen.<ext>` donde `<ext>` es `png`, `jpg`, `jpeg`, `webp` 
 
 ---
 
-## Contribuir con nuevos ejercicios (recomendado)
+## Contribuir con nuevos ejercicios usando el wizard (recomendado para principiantes)
 
-La forma más fácil de agregar ejercicios es usando la carpeta de staging `new-exercises/`:
+En la parte superior a la derecha de la pagina, clickeando el boton 'contribuir', se abre el "wizard", donde se pueden añadir ejercicios manualmente uno por uno con una UI facil. Luego de añadir todos los ejercicios, el wizard tiene todos los pasos a seguir para que aparezcan en la pagina.
+
+## Contribuir con nuevos ejercicios desde la terminal (recomendado si se piensa automatizar el proceso de creado de los ejercicios)
 
 ### Pasos
 
 1. Forkeá el repositorio.
 
-2. Creá la carpetas de ejercicios dentro de `new-exercises/` (estructura plana, sin subcarpetas de institución/tema):
-(Si tu institución no existe todavía, solamente con que un ejercicio nuevo pertenezca a esa institucion la creará automaticamente.)
+2. Creá la carpetas de ejercicios dentro de `new-exercises/`. Adentro esta debe contener los ejercicios nuevos, en el formato que se muestra a continuacion:
+
    ```
    new-exercises/
      2025-nacional-ej03/
-       meta.yaml
-       imagen.png
+       meta.yaml -> el formato del yaml esta aclarado arriba
+       imagen.png -> imagen del ejercicio
      2025-provincial-ej01/
        meta.yaml
        imagen.jpg
    ```
+(Si tus ejercicios pertenecen a una institución que no existe todavía, solamente con que un ejercicio nuevo pertenezca a esa institucion se creará automaticamente.)
 
 3. **(Opcional)** Revisá y editá los ejercicios con la app local:
    ```bash
-   pip install -r requirements.txt
+   pip install -r requirements.txt 
    python review.py
    # Abrí http://localhost:5112
    ```
