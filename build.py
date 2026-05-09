@@ -2,6 +2,7 @@
 """Build script for AstroDojo — static site generator for astronomy olympiad exercises."""
 
 import argparse
+import csv
 import json
 import os
 import shutil
@@ -16,7 +17,7 @@ TEMPLATES_DIR = Path("templates")
 SITE_DIR = Path("site")
 STATIC_DIR = Path("static")
 
-REQUIRED_FIELDS = {"institucion", "tema", "subtemas", "anio", "etapa", "fuente"}
+REQUIRED_FIELDS = {"institucion", "tema", "subtemas", "anio", "etapa", "fuente", "numero"}
 VALID_DIFICULTAD = {"facil", "intermedio", "dificil"}
 VALID_ETAPA = {"provincial", "nacional", "internacional"}
 VALID_TEMAS = {
@@ -38,6 +39,21 @@ TOPIC_DISPLAY = {
 }
 
 FORMULAS_DIR = Path("formulas")
+
+
+def build_exercise_id(meta):
+    """Build a canonical exercise ID from metadata fields.
+
+    Format: <anio>-<etapa>[-<modalidad>][-<nivel>]-ej<numero>
+    Example: 2025-nacional-grupal-N1-ej03
+    """
+    parts = [str(meta["anio"]), meta["etapa"]]
+    if meta.get("modalidad"):
+        parts.append(meta["modalidad"])
+    if meta.get("nivel"):
+        parts.append(meta["nivel"])
+    parts.append("ej" + str(meta["numero"]).zfill(2))
+    return "-".join(parts)
 
 
 def load_exercises():
@@ -233,6 +249,28 @@ def build_site(exercises):
     print(f"Built site with {len(exercises)} exercises into {SITE_DIR}/")
 
 
+CATALOGUE_PATH = Path("catalogo.csv")
+CATALOGUE_FIELDS = ["id", "institucion", "tema", "anio", "etapa", "dificultad", "subtemas"]
+
+
+def generate_catalogue(exercises):
+    """Generate catalogo.csv listing all existing exercises."""
+    with open(CATALOGUE_PATH, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CATALOGUE_FIELDS)
+        writer.writeheader()
+        for ex in sorted(exercises, key=lambda e: e["_id"]):
+            writer.writerow({
+                "id": ex["_id"],
+                "institucion": ex.get("institucion", ""),
+                "tema": ex.get("tema", ""),
+                "anio": ex.get("anio", ""),
+                "etapa": ex.get("etapa", ""),
+                "dificultad": ex.get("dificultad", ""),
+                "subtemas": ", ".join(ex.get("subtemas", [])),
+            })
+    print(f"Generated {CATALOGUE_PATH} with {len(exercises)} exercises.")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Build AstroDojo static site")
     parser.add_argument("--validate-only", action="store_true", help="Only validate meta.yaml files, don't build")
@@ -257,6 +295,7 @@ def main():
     if args.validate_only:
         return
 
+    generate_catalogue(exercises)
     build_site(exercises)
 
 

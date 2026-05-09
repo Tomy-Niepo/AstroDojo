@@ -2,6 +2,7 @@
 """Import exercises from the new-exercises/ staging folder into exercises/<inst>/<tema>/<id>/."""
 
 import argparse
+import csv
 import shutil
 import sys
 from pathlib import Path
@@ -9,11 +10,13 @@ from pathlib import Path
 import yaml
 
 from build import (
+    CATALOGUE_PATH,
     REQUIRED_FIELDS,
     TOPIC_DISPLAY,
     VALID_DIFICULTAD,
     VALID_ETAPA,
     VALID_TEMAS,
+    build_exercise_id,
 )
 
 STAGING_DIR = Path("new-exercises")
@@ -64,6 +67,9 @@ def validate_exercise(meta):
     if meta.get("anio") and not isinstance(meta["anio"], int):
         errors.append(f"{exercise_id}: anio must be an integer")
 
+    if not meta.get("numero") or not isinstance(meta.get("numero"), int):
+        errors.append(f"{exercise_id}: numero is required and must be an integer")
+
     if "solucion" in meta and not isinstance(meta["solucion"], str):
         errors.append(f"{exercise_id}: solucion must be a string (URL)")
 
@@ -73,12 +79,23 @@ def validate_exercise(meta):
     return errors
 
 
+def load_catalogue_ids():
+    """Load the set of exercise IDs from catalogo.csv."""
+    ids = set()
+    if CATALOGUE_PATH.exists():
+        with open(CATALOGUE_PATH, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                ids.add(row["id"])
+    return ids
+
+
 def get_target_path(meta):
-    """Compute the target path: exercises/<inst>/<tema>/<id>/."""
+    """Compute the target path: exercises/<inst>/<tema>/<canonical_id>/."""
     inst = meta.get("institucion", "")
     tema = meta.get("tema", "")
-    exercise_id = meta["_id"]
-    return EXERCISES_DIR / inst / tema / exercise_id
+    canonical_id = build_exercise_id(meta)
+    return EXERCISES_DIR / inst / tema / canonical_id
 
 
 def main():
@@ -96,6 +113,23 @@ def main():
         sys.exit(0)
 
     print(f"Found {len(exercises)} exercise(s) in {STAGING_DIR}/\n")
+
+    # Check for collisions against the catalogue using canonical IDs
+    catalogue_ids = load_catalogue_ids()
+    collisions = []
+    for meta in exercises:
+        try:
+            cid = build_exercise_id(meta)
+        except (KeyError, TypeError):
+            continue  # will be caught by validation
+        if cid in catalogue_ids:
+            collisions.append((meta["_id"], cid))
+    if collisions:
+        print("COLLISION — these exercises already exist in the catalogue:")
+        for folder_name, cid in collisions:
+            print(f"  - {folder_name} (canonical ID: {cid})")
+        print(f"\nRemove them from {STAGING_DIR}/ or fix their metadata, then try again.")
+        sys.exit(1)
 
     # Pass 1: Validate all exercises
     all_errors = []

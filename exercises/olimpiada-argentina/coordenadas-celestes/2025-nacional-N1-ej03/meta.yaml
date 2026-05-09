@@ -3,6 +3,8 @@ dificultad: facil
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomia 2025, Nacional
 institucion: olimpiada-argentina
+nivel: N1
+numero: 3
 subtemas:
 - paralaje
 tema: coordenadas-celestes

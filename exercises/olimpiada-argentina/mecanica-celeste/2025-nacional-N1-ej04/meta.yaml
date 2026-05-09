@@ -3,6 +3,8 @@ dificultad: intermedio
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomia 2025, Nacional
 institucion: olimpiada-argentina
+nivel: N1
+numero: 4
 subtemas:
 - orbitas
 - velocidad angular

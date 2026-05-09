@@ -35,6 +35,8 @@ from pathlib import Path
 import fitz  # PyMuPDF
 import yaml
 
+from build import build_exercise_id
+
 
 def render_page(doc, page_num, dpi=200, crop=None):
     """Render a PDF page to a PNG bytes buffer.
@@ -104,6 +106,8 @@ def main():
     meta_group.add_argument("--etapa", help="Stage: provincial, nacional, or internacional")
     meta_group.add_argument("--fuente", help="Source description")
     meta_group.add_argument("--subtemas", default="", help="Comma-separated subtemas (optional)")
+    meta_group.add_argument("--modalidad", help="Modality: individual or grupal (optional)")
+    meta_group.add_argument("--nivel", help="Level: N1, N2, N3, N4 (optional)")
     meta_group.add_argument("--solucion", help="Solution URL (optional)")
     meta_group.add_argument("--exercise-num", type=int, default=1, help="Starting exercise number (default: 1)")
 
@@ -143,25 +147,29 @@ def main():
         exercise_num = args.exercise_num
 
         for page_num in page_nums:
-            eid = f"{args.anio}-{args.etapa}-ej{str(exercise_num).zfill(2)}"
-            folder = exercises_dir / args.institucion / args.tema / eid
-            folder.mkdir(parents=True, exist_ok=True)
-
-            # Render and save image
-            png_bytes = render_page(doc, page_num, dpi=args.dpi, crop=crop)
-            (folder / "imagen.png").write_bytes(png_bytes)
-
-            # Write meta.yaml
             meta = {
                 "institucion": args.institucion,
                 "tema": args.tema,
                 "subtemas": subtemas,
                 "anio": args.anio,
                 "etapa": args.etapa,
+                "numero": exercise_num,
                 "fuente": args.fuente,
             }
+            if args.modalidad:
+                meta["modalidad"] = args.modalidad
+            if args.nivel:
+                meta["nivel"] = args.nivel
             if args.solucion:
                 meta["solucion"] = args.solucion
+
+            eid = build_exercise_id(meta)
+            folder = exercises_dir / args.institucion / args.tema / eid
+            folder.mkdir(parents=True, exist_ok=True)
+
+            # Render and save image
+            png_bytes = render_page(doc, page_num, dpi=args.dpi, crop=crop)
+            (folder / "imagen.png").write_bytes(png_bytes)
 
             with open(folder / "meta.yaml", "w", encoding="utf-8") as f:
                 yaml.dump(meta, f, allow_unicode=True, default_flow_style=False)

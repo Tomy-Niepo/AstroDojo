@@ -1,10 +1,12 @@
 anio: 2024
-dificultad: facil
+dificultad: dificil
 etapa: internacional
 fuente: Olimpiada Latinoamericana de Astronomia y Astronautica 2024, Individual
 institucion: olimpiada-latinoamericana
+modalidad: individual
+numero: 4
 solucion: https://drive.google.com/file/d/1WdGKjVIk5ScSs0ZAvSckJ_FPA63YMdEw/view
 subtemas:
-- Elongacion
-- Periodo sinodico
-tema: coordenadas-celestes
+- Paralaje
+- Sistema solar
+tema: mecanica-celeste
