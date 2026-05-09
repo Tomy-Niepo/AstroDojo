@@ -94,11 +94,16 @@
       <div class="step active" id="step-0">
         <h2>1. Elegí la institución</h2>
         <label for="institucion">Institución</label>
-        <select id="institucion">
+        <select id="institucion" onchange="toggleNewInst()">
           {% for inst in institutions %}
           <option value="{{ inst }}">{{ inst | replace("-", " ") | title }}</option>
           {% endfor %}
+          <option value="__nueva__">+ Nueva institución...</option>
         </select>
+        <div id="new-inst-fields" style="display:none;">
+          <label for="new-inst-name">Nombre de la institución</label>
+          <input type="text" id="new-inst-name" placeholder="ej: Olimpiada Brasileña de Astronomía">
+        </div>
         <button class="btn btn-primary" onclick="nextStep(1)">Siguiente</button>
       </div>
 
@@ -276,8 +281,25 @@ git push
       "magnitudes": "Magnitudes", "radiacion": "Radiación", "galaxias": "Galaxias"
     };
 
+    function toggleNewInst() {
+      var sel = document.getElementById("institucion");
+      document.getElementById("new-inst-fields").style.display = sel.value === "__nueva__" ? "block" : "none";
+    }
+
+    function getInstitucion() {
+      var sel = document.getElementById("institucion");
+      if (sel.value !== "__nueva__") return sel.value;
+      var raw = document.getElementById("new-inst-name").value.trim();
+      if (!raw) return "";
+      return raw.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
+    }
+
     // Step navigation
     function nextStep(n) {
+      if (n === 1 && !getInstitucion()) {
+        alert("Ingresá el nombre de la nueva institución.");
+        return;
+      }
       document.querySelectorAll(".step").forEach(function (s) { s.classList.remove("active"); });
       document.getElementById("step-" + n).classList.add("active");
       for (var i = 0; i < 4; i++) {
@@ -322,7 +344,7 @@ git push
     }
 
     function buildMeta(idx) {
-      var inst = document.getElementById("institucion").value;
+      var inst = getInstitucion();
       var anio = parseInt(document.getElementById("anio").value);
       var etapa = document.getElementById("etapa").value;
       var tema = document.getElementById("tema").value;
