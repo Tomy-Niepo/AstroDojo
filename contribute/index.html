@@ -49,6 +49,19 @@
     .queued-actions { display: flex; gap: 0.5rem; }
     .queued-actions .btn { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
 
+    details { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 0.75rem 1rem; margin-bottom: 0.75rem; }
+    details summary { cursor: pointer; font-weight: 600; font-size: 0.95rem; }
+    details summary:hover { color: var(--accent); }
+    details > *:not(summary) { margin-top: 0.75rem; }
+    details pre { background: #1a1a2e; padding: 0.75rem; border-radius: var(--radius);
+      overflow-x: auto; font-size: 0.82rem; line-height: 1.5; }
+    details code { font-size: 0.82rem; }
+    details ol, details ul { padding-left: 1.25rem; font-size: 0.9rem; line-height: 1.6; }
+    details li { margin-bottom: 0.35rem; }
+    details details { margin-top: 0.5rem; }
+    .instructions-note { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; }
+
     .edit-form { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); display: none; }
     .edit-form.open { display: block; }
     .edit-form .field-row { display: flex; gap: 0.75rem; }
@@ -172,10 +185,75 @@
         <p style="color:var(--text-muted);margin-bottom:1rem;">Revisá y editá los ejercicios antes de descargar.</p>
         <ul class="queued-list" id="queued-list"></ul>
 
-        <div style="margin-top:1.5rem; display:flex; gap:1rem; flex-wrap:wrap;">
+        <div style="margin-top:1.5rem; display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1.5rem;">
           <button class="btn btn-primary" onclick="downloadZip()">Descargar ZIP</button>
           <button class="btn btn-secondary" onclick="nextStep(2)">Agregar más</button>
         </div>
+
+        <h3 style="margin-bottom:0.75rem;">¿Cómo contribuir con estos ejercicios?</h3>
+        <p class="instructions-note">Descargá el ZIP y seguí uno de estos caminos para enviarlo al repositorio.</p>
+
+        <details>
+          <summary>Ya tengo un fork del repositorio</summary>
+          <ol>
+            <li>Descargá el ZIP con el botón de arriba</li>
+            <li>Extraelo en la carpeta <code>new-exercises/</code> de tu fork</li>
+            <li>Ejecutá <code>python review.py</code> (opcional — para revisar en localhost:5112)</li>
+            <li>Ejecutá <code>python import_exercises.py</code></li>
+            <li>Hacé commit, push a tu fork, y abrí un PR</li>
+          </ol>
+          <pre><code>unzip new-exercises.zip -d new-exercises/
+python review.py          # (opcional) revisar en localhost:5112
+python import_exercises.py
+git add exercises/
+git commit -m "Add new exercises"
+git push
+# Luego abrí un PR en GitHub desde tu fork</code></pre>
+        </details>
+
+        <details>
+          <summary>No tengo un fork</summary>
+          <p style="font-size:0.9rem;">Primero hacé fork del repositorio en GitHub, después elegí cómo trabajar:</p>
+
+          <details>
+            <summary>Opción 1: GitHub Desktop (recomendado para principiantes)</summary>
+            <ol>
+              <li>Instalá <a href="https://desktop.github.com" target="_blank">GitHub Desktop</a></li>
+              <li>Hacé fork del repo: clickeá "Fork" en <a href="https://github.com/Tomy-Niepo/AstroDojo" target="_blank">github.com/Tomy-Niepo/AstroDojo</a></li>
+              <li>En GitHub Desktop: File → Clone Repository → seleccioná tu fork</li>
+              <li>Extraé el ZIP descargado en la carpeta <code>new-exercises/</code> dentro del repo clonado</li>
+              <li>Abrí una terminal en esa carpeta y ejecutá:
+                <pre><code>pip install -r requirements.txt
+python import_exercises.py</code></pre>
+              </li>
+              <li>En GitHub Desktop: vas a ver los archivos nuevos. Escribí un mensaje de commit y clickeá "Commit to main"</li>
+              <li>Clickeá "Push origin"</li>
+              <li>Clickeá "Create Pull Request" — se abre GitHub en el navegador para enviar tu PR</li>
+            </ol>
+          </details>
+
+          <details>
+            <summary>Opción 2: Terminal</summary>
+            <pre><code># 1. Hacé fork en GitHub: clickeá "Fork" en
+#    https://github.com/Tomy-Niepo/AstroDojo
+
+# 2. Cloná tu fork
+git clone https://github.com/TU-USUARIO/AstroDojo.git
+cd AstroDojo
+pip install -r requirements.txt
+
+# 3. Extraé los ejercicios e importalos
+unzip new-exercises.zip -d new-exercises/
+python import_exercises.py
+
+# 4. Commit y push
+git add exercises/
+git commit -m "Add new exercises"
+git push
+
+# 5. Abrí un PR desde tu fork en GitHub</code></pre>
+          </details>
+        </details>
       </div>
     </div>
   </main>
@@ -422,10 +500,9 @@
     function downloadZip() {
       if (!exercises.length) return;
       var zip = new JSZip();
-      var inst = exercises[0].meta.institucion;
 
       exercises.forEach(function (ex) {
-        var folder = "exercises/" + inst + "/" + ex.meta.tema + "/" + ex.id + "/";
+        var folder = ex.id + "/";
         zip.file(folder + "meta.yaml", metaToYAML(ex.meta));
         var ext = ex.file.name.split(".").pop();
         zip.file(folder + "imagen." + ext, dataURLtoBlob(ex.dataURL));
@@ -434,7 +511,7 @@
       zip.generateAsync({ type: "blob" }).then(function (content) {
         var a = document.createElement("a");
         a.href = URL.createObjectURL(content);
-        a.download = "astrodojo-exercises.zip";
+        a.download = "new-exercises.zip";
         a.click();
       });
     }
