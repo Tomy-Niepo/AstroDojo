@@ -119,10 +119,41 @@
           </div>
           <div>
             <label for="etapa">Etapa</label>
-            <select id="etapa">
+            <select id="etapa" onchange="toggleNewEtapa()">
+              <option value="zonal">Zonal</option>
+              <option value="regional">Regional</option>
               <option value="provincial">Provincial</option>
               <option value="nacional" selected>Nacional</option>
               <option value="internacional">Internacional</option>
+              <option value="iberoamericana">Iberoamericana</option>
+              <option value="latinoamericana">Latinoamericana</option>
+              <option value="__nueva__">+ Otra...</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="new-etapa-fields" style="display:none;">
+          <label for="new-etapa-name">Nombre de la etapa</label>
+          <input type="text" id="new-etapa-name" placeholder="ej: semifinal">
+        </div>
+
+        <div class="field-row">
+          <div>
+            <label for="modalidad">Modalidad (opcional)</label>
+            <select id="modalidad">
+              <option value="" selected>Sin especificar</option>
+              <option value="individual">Individual</option>
+              <option value="grupal">Grupal</option>
+            </select>
+          </div>
+          <div>
+            <label for="nivel">Nivel (opcional)</label>
+            <select id="nivel">
+              <option value="" selected>Sin especificar</option>
+              <option value="N1">N1</option>
+              <option value="N2">N2</option>
+              <option value="N3">N3</option>
+              <option value="N4">N4</option>
             </select>
           </div>
         </div>
@@ -286,6 +317,19 @@ git push
       document.getElementById("new-inst-fields").style.display = sel.value === "__nueva__" ? "block" : "none";
     }
 
+    function toggleNewEtapa() {
+      var sel = document.getElementById("etapa");
+      document.getElementById("new-etapa-fields").style.display = sel.value === "__nueva__" ? "block" : "none";
+    }
+
+    function getEtapa() {
+      var sel = document.getElementById("etapa");
+      if (sel.value !== "__nueva__") return sel.value;
+      var raw = document.getElementById("new-etapa-name").value.trim();
+      if (!raw) return "";
+      return raw.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9\-]/g, "");
+    }
+
     function getInstitucion() {
       var sel = document.getElementById("institucion");
       if (sel.value !== "__nueva__") return sel.value;
@@ -298,6 +342,10 @@ git push
     function nextStep(n) {
       if (n === 1 && !getInstitucion()) {
         alert("Ingresá el nombre de la nueva institución.");
+        return;
+      }
+      if (n === 2 && !getEtapa()) {
+        alert("Ingresá el nombre de la etapa.");
         return;
       }
       document.querySelectorAll(".step").forEach(function (s) { s.classList.remove("active"); });
@@ -346,14 +394,20 @@ git push
     function buildMeta(idx) {
       var inst = getInstitucion();
       var anio = parseInt(document.getElementById("anio").value);
-      var etapa = document.getElementById("etapa").value;
+      var etapa = getEtapa();
+      var modalidad = document.getElementById("modalidad").value;
+      var nivel = document.getElementById("nivel").value;
       var tema = document.getElementById("tema").value;
       var dif = document.getElementById("dificultad-override").value || document.getElementById("dificultad-batch").value;
       var subRaw = document.getElementById("subtemas-override").value.trim();
       var subtemas = subRaw ? subRaw.split(",").map(function (s) { return s.trim().toLowerCase(); }) : [];
 
       var num = String(idx).padStart(2, "0");
-      var id = anio + "-" + etapa + "-ej" + num;
+      // ID: <anio>-<etapa>[-<modalidad>][-<nivel>]-ej<numero>
+      var id = anio + "-" + etapa;
+      if (modalidad) id += "-" + modalidad;
+      if (nivel) id += "-" + nivel;
+      id += "-ej" + num;
 
       var solucion = document.getElementById("solucion").value.trim();
 
@@ -366,6 +420,8 @@ git push
         etapa: etapa,
         fuente: inst.replace(/-/g, " ").replace(/\b\w/g, function(c){ return c.toUpperCase(); }) + " " + anio + ", " + etapa.charAt(0).toUpperCase() + etapa.slice(1)
       };
+      if (modalidad) meta.modalidad = modalidad;
+      if (nivel) meta.nivel = nivel;
       if (solucion) meta.solucion = solucion;
 
       return { id: id, meta: meta };
@@ -383,6 +439,8 @@ git push
       lines.push("dificultad: " + m.dificultad);
       lines.push("anio: " + m.anio);
       lines.push("etapa: " + m.etapa);
+      if (m.modalidad) lines.push("modalidad: " + m.modalidad);
+      if (m.nivel) lines.push("nivel: " + m.nivel);
       lines.push('fuente: "' + m.fuente + '"');
       if (m.solucion) lines.push('solucion: "' + m.solucion + '"');
       return lines.join("\n") + "\n";
