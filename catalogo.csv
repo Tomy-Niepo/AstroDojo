@@ -1,13 +1,13 @@
 id,institucion,tema,anio,etapa,dificultad,subtemas
-2024-internacional-individual-ej01,olimpiada-latinoamericana,galaxias,2024,internacional,intermedio,"Relacion Tully-Fisher, Magnitudes"
-2024-internacional-individual-ej02,olimpiada-latinoamericana,coordenadas-celestes,2024,internacional,facil,"Elongacion, Periodo sinodico"
-2024-internacional-individual-ej03,olimpiada-latinoamericana,mecanica-celeste,2024,internacional,dificil,"Teorema del virial, Cumulos estelares"
-2024-internacional-individual-ej04,olimpiada-latinoamericana,mecanica-celeste,2024,internacional,dificil,"Paralaje, Sistema solar"
-2025-internacional-grupal-ej01,olimpiada-latinoamericana,astrofisica,2025,internacional,intermedio,"Espectroscopia, Efecto Doppler"
-2025-internacional-grupal-ej02,olimpiada-latinoamericana,astrofisica,2025,internacional,dificil,"Exoplanetas, Fotometria"
-2025-internacional-grupal-ej03,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,intermedio,"Orbitas, Transferencia de Hohmann"
-2025-internacional-grupal-ej04,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,dificil,"Mareas, Gravitacion"
-2025-internacional-individual-ej02,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,intermedio,Radiacion
+2024-internacional-individual-ej01,olimpiada-latinoamericana,galaxias,2024,internacional,intermedio,"relacion tully-fisher, magnitudes"
+2024-internacional-individual-ej02,olimpiada-latinoamericana,coordenadas-celestes,2024,internacional,facil,"elongacion, periodo sinodico"
+2024-internacional-individual-ej03,olimpiada-latinoamericana,mecanica-celeste,2024,internacional,dificil,"teorema del virial, cumulos estelares"
+2024-internacional-individual-ej04,olimpiada-latinoamericana,mecanica-celeste,2024,internacional,dificil,"paralaje, sistema solar"
+2025-internacional-grupal-ej01,olimpiada-latinoamericana,astrofisica,2025,internacional,intermedio,"espectroscopia, efecto doppler"
+2025-internacional-grupal-ej02,olimpiada-latinoamericana,astrofisica,2025,internacional,dificil,"exoplanetas, fotometria"
+2025-internacional-grupal-ej03,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,intermedio,"orbitas, transferencia de hohmann"
+2025-internacional-grupal-ej04,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,dificil,"mareas, gravitacion"
+2025-internacional-individual-ej02,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,intermedio,radiacion
 2025-nacional-individual-N1-ej01,olimpiada-argentina,mecanica-celeste,2025,nacional,facil,"orbitas, magnitudes, flujo"
 2025-nacional-individual-N1-ej02,olimpiada-argentina,astrofisica,2025,nacional,intermedio,"estrellas binarias, magnitudes, luminosidad"
 2025-nacional-individual-N1-ej03,olimpiada-argentina,coordenadas-celestes,2025,nacional,facil,paralaje
