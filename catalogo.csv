@@ -8,8 +8,8 @@ id,institucion,tema,anio,etapa,dificultad,subtemas
 2025-internacional-grupal-ej03,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,intermedio,"Orbitas, Transferencia de Hohmann"
 2025-internacional-grupal-ej04,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,dificil,"Mareas, Gravitacion"
 2025-internacional-individual-ej02,olimpiada-latinoamericana,mecanica-celeste,2025,internacional,intermedio,Radiacion
-2025-nacional-N1-ej01,olimpiada-argentina,mecanica-celeste,2025,nacional,facil,"orbitas, magnitudes, flujo"
-2025-nacional-N1-ej02,olimpiada-argentina,astrofisica,2025,nacional,intermedio,"estrellas binarias, magnitudes, luminosidad"
-2025-nacional-N1-ej03,olimpiada-argentina,coordenadas-celestes,2025,nacional,facil,paralaje
-2025-nacional-N1-ej04,olimpiada-argentina,mecanica-celeste,2025,nacional,intermedio,"orbitas, velocidad angular"
-2025-nacional-N2-ej01,olimpiada-argentina,mecanica-celeste,2025,nacional,dificil,
+2025-nacional-individual-N1-ej01,olimpiada-argentina,mecanica-celeste,2025,nacional,facil,"orbitas, magnitudes, flujo"
+2025-nacional-individual-N1-ej02,olimpiada-argentina,astrofisica,2025,nacional,intermedio,"estrellas binarias, magnitudes, luminosidad"
+2025-nacional-individual-N1-ej03,olimpiada-argentina,coordenadas-celestes,2025,nacional,facil,paralaje
+2025-nacional-individual-N1-ej04,olimpiada-argentina,mecanica-celeste,2025,nacional,intermedio,"orbitas, velocidad angular"
+2025-nacional-individual-N2-ej01,olimpiada-argentina,mecanica-celeste,2025,nacional,dificil,
