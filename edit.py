@@ -419,9 +419,68 @@ _TABS = """
 # Templates
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Shared card grid snippet — used by TOPIC_TPL and ALL_TPL
+# ---------------------------------------------------------------------------
+
+_CARD_GRID = """
+  <div class="card-grid" id="exercise-grid">
+    {% for ex in exercises %}
+    <a href="{{ url_for('edit_detail', exercise_id=ex._id) }}"
+       class="ed-card-wrap"
+       data-anio="{{ ex.anio|default('') }}"
+       data-dificultad="{{ ex.dificultad|default('') }}"
+       data-tema="{{ ex.tema|default('') }}"
+       data-etapa="{{ ex.etapa|default('') }}"
+       data-nivel="{{ ex.nivel|default('') }}"
+       data-subtemas="{{ ex.subtemas|default([])|join(',') }}"
+       data-id="{{ ex._id }}"
+       data-fuente="{{ ex.fuente|default('') }}">
+      <div class="card exercise-card">
+        {% if ex._imagen %}
+        <div class="card-img-wrapper">
+          <img src="{{ url_for('ex_image', path=ex._rel + '/' + ex._imagen) }}"
+               alt="{{ ex._id }}" loading="lazy">
+        </div>
+        {% else %}
+        <div class="placeholder-img">Sin imagen</div>
+        {% endif %}
+        <div class="card-body">
+          {% if ex.dificultad %}
+          <span class="badge badge-{{ ex.dificultad }}">{{ ex.dificultad|title }}</span>
+          {% else %}
+          <span class="badge no-dif">Sin dificultad</span>
+          {% endif %}
+          <span class="badge badge-etapa">{{ ex.etapa|default('')|title }}</span>
+          <span class="badge badge-anio">{{ ex.anio|default('') }}</span>
+          {% if ex.nivel is defined and ex.nivel %}
+          <span class="badge" style="background:#21262d;color:#8b949e;">{{ ex.nivel }}</span>
+          {% endif %}
+          <div class="subtemas">
+            {% for s in ex.subtemas|default([]) %}
+            <span class="tag">{{ s|replace('-',' ')|title }}</span>
+            {% endfor %}
+          </div>
+          <p class="fuente">{{ ex.fuente|default('') }}</p>
+        </div>
+        <div class="ed-hover"><span>Editar</span></div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  <p id="no-results" class="hidden"
+     style="text-align:center;color:#8b949e;padding:2rem;">
+    No se encontraron ejercicios con esos filtros.
+  </p>
+"""
+
+# ---------------------------------------------------------------------------
+# Hub: 9-topic index (mirrors public site's main page)
+# ---------------------------------------------------------------------------
+
 INDEX_TPL = _HEAD + """
 <div class="ed-bar">
-  <span class="ed-brand">✏&#xFE0F; Mis Ejercicios</span>
+  <span class="ed-brand">&#x270F;&#xFE0F; Mis Ejercicios</span>
   """ + _TABS + """
 </div>
 <header><nav><a href="/" class="logo">AstroDojo</a></nav></header>
@@ -429,8 +488,9 @@ INDEX_TPL = _HEAD + """
   <section class="topic-header">
     <h1>Mis Ejercicios Locales</h1>
     <p style="color:#8b949e;margin-top:.3rem;">
-      {% if exercises %}
-        {{ exercises|length }} ejercicio(s) nuevo(s) — solo los tuyos, listos para revisar antes del PR.
+      {% if total_count %}
+        {{ total_count }} ejercicio{{ 's' if total_count != 1 }} nuevo{{ 's' if total_count != 1 }}
+        — solo los tuyos, listos para revisar antes del PR.
       {% else %}
         No se encontraron ejercicios locales nuevos.
       {% endif %}
@@ -443,11 +503,237 @@ INDEX_TPL = _HEAD + """
     {% endfor %}
   {% endwith %}
 
-  {% if exercises %}
+  <div class="card-grid">
+    {% if total_count %}
+    <a href="{{ url_for('all_exercises') }}" class="card topic-card"
+       style="border-left-color:#bc8cff;">
+      <h3>Todos los temas</h3>
+      <span class="chip">{{ total_count }} ejercicio{{ 's' if total_count != 1 }}</span>
+    </a>
+    {% endif %}
+    {% for t in valid_temas|sort %}
+    {% set cnt = exercises_by_tema.get(t, [])|length %}
+    {% if cnt %}
+    <a href="{{ url_for('topic_page', tema=t) }}" class="card topic-card">
+      <h3>{{ topic_display.get(t, t) }}</h3>
+      <span class="chip">{{ cnt }} ejercicio{{ 's' if cnt != 1 }}</span>
+    </a>
+    {% else %}
+    <div class="card topic-card" style="opacity:.35;pointer-events:none;cursor:default;">
+      <h3>{{ topic_display.get(t, t) }}</h3>
+      <span class="chip">0 ejercicios</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
 
+  {% if not total_count %}
+  <div class="ed-empty">
+    <h2>No hay ejercicios locales nuevos</h2>
+    <p>Todavía no agregaste ningún ejercicio que no esté en el repositorio remoto.</p>
+    <ol>
+      <li>Agregá ejercicios con el wizard (<code>contribute/index.html</code>).</li>
+      <li>Si usaste el wizard, corré <code>python import_exercises.py</code>
+          para moverlos a <code>exercises/</code>.</li>
+      <li>Volvé a abrir esta página para revisarlos.</li>
+    </ol>
+  </div>
+  {% endif %}
+
+  <div class="pr-guide">
+    <h3>¿Listo para enviar tu PR?</h3>
+    <ol>
+      <li>Revisá y editá tus ejercicios (especialmente asigná la <strong>dificultad</strong>).</li>
+      <li>Hacé commit de tus cambios:<br>
+        <pre>git add exercises/
+git commit -m "Add exercises: descripción breve"</pre>
+      </li>
+      <li>Subí tu rama y abrí un Pull Request en GitHub:<br>
+        <pre>git push origin main
+# Luego abrí un PR en https://github.com/Tomy-Niepo/AstroDojo</pre>
+      </li>
+    </ol>
+  </div>
+</main>
+""" + _FOOT
+
+# ---------------------------------------------------------------------------
+# Topic page: exercises for one tema, filterable by subtema + other filters
+# ---------------------------------------------------------------------------
+
+TOPIC_TPL = _HEAD + """
+<div class="ed-bar">
+  <span class="ed-brand">&#x270F;&#xFE0F; Mis Ejercicios</span>
+  """ + _TABS + """
+</div>
+<header><nav><a href="/" class="logo">AstroDojo</a></nav></header>
+<main>
+  <section class="topic-header">
+    <a href="{{ url_for('index') }}" class="breadcrumb">&larr; Mis Ejercicios</a>
+    <h1>{{ topic_display.get(tema, tema) }}</h1>
+    <p style="color:#8b949e;margin-top:.3rem;">
+      {{ exercises|length }} ejercicio{{ 's' if exercises|length != 1 }} en este tema.
+    </p>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="ed-flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if exercises %}
   <section class="filters">
     <div class="filter-group">
-      <input type="text" id="search-input" class="search-input" placeholder="Buscar por ID, fuente, subtema…">
+      <input type="text" id="search-input" class="search-input"
+             placeholder="Buscar por ID, fuente, subtema…">
+    </div>
+    {% if subtemas %}
+    <div class="filter-group">
+      <h3>Subtemas</h3>
+      <div class="filter-buttons" id="subtema-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for s in subtemas %}
+        <button class="filter-btn" data-value="{{ s }}">{{ s|replace('-',' ')|title }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if anios|length > 1 %}
+    <div class="filter-group">
+      <h3>Año</h3>
+      <div class="filter-buttons" id="anio-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for a in anios %}
+        <button class="filter-btn" data-value="{{ a }}">{{ a }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <div class="filter-group">
+      <h3>Dificultad</h3>
+      <div class="filter-buttons" id="diff-filters">
+        <button class="filter-btn active" data-value="all">Todas</button>
+        <button class="filter-btn" data-value="facil">Fácil</button>
+        <button class="filter-btn" data-value="intermedio">Intermedio</button>
+        <button class="filter-btn" data-value="dificil">Difícil</button>
+        <button class="filter-btn" data-value="">Sin asignar</button>
+      </div>
+    </div>
+    {% if etapas|length > 1 %}
+    <div class="filter-group">
+      <h3>Etapa</h3>
+      <div class="filter-buttons" id="etapa-filters">
+        <button class="filter-btn active" data-value="all">Todas</button>
+        {% for e in etapas %}
+        <button class="filter-btn" data-value="{{ e }}">{{ e|title }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if niveles|length > 1 %}
+    <div class="filter-group">
+      <h3>Nivel</h3>
+      <div class="filter-buttons" id="nivel-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for n in niveles %}
+        <button class="filter-btn" data-value="{{ n }}">{{ n }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+  """ + _CARD_GRID + """
+  {% else %}
+  <div class="ed-empty">
+    <h2>No hay ejercicios en este tema</h2>
+    <p>No agregaste ningún ejercicio de <strong>{{ topic_display.get(tema, tema) }}</strong> todavía.</p>
+  </div>
+  {% endif %}
+</main>
+<script>
+(function () {
+  var active = { subtema: 'all', anio: 'all', dif: 'all', etapa: 'all', nivel: 'all' };
+  var search = '';
+  var cards = document.querySelectorAll('.ed-card-wrap');
+  var noResults = document.getElementById('no-results');
+
+  function applyFilters() {
+    var q = search.toLowerCase();
+    var visible = 0;
+    cards.forEach(function (c) {
+      var subs = c.dataset.subtemas ? c.dataset.subtemas.split(',') : [];
+      var ok =
+        (active.subtema === 'all' || subs.indexOf(active.subtema) !== -1) &&
+        (active.anio  === 'all' || String(c.dataset.anio) === active.anio) &&
+        (active.dif   === 'all' || c.dataset.dificultad   === active.dif) &&
+        (active.etapa === 'all' || c.dataset.etapa        === active.etapa) &&
+        (active.nivel === 'all' || c.dataset.nivel        === active.nivel) &&
+        (!q ||
+          c.dataset.id.toLowerCase().indexOf(q) !== -1 ||
+          c.dataset.fuente.toLowerCase().indexOf(q) !== -1 ||
+          c.dataset.subtemas.toLowerCase().indexOf(q) !== -1);
+      c.style.display = ok ? '' : 'none';
+      if (ok) visible++;
+    });
+    if (noResults) noResults.classList.toggle('hidden', visible > 0);
+  }
+
+  function bindGroup(groupId, key) {
+    var el = document.getElementById(groupId);
+    if (!el) return;
+    el.querySelectorAll('.filter-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        el.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        active[key] = btn.dataset.value;
+        applyFilters();
+      });
+    });
+  }
+
+  bindGroup('subtema-filters', 'subtema');
+  bindGroup('anio-filters',    'anio');
+  bindGroup('diff-filters',    'dif');
+  bindGroup('etapa-filters',   'etapa');
+  bindGroup('nivel-filters',   'nivel');
+
+  var si = document.getElementById('search-input');
+  if (si) si.addEventListener('input', function () { search = si.value; applyFilters(); });
+})();
+</script>
+""" + _FOOT
+
+# ---------------------------------------------------------------------------
+# All-exercises page: flat grid, no subtema filter, has tema filter
+# ---------------------------------------------------------------------------
+
+ALL_TPL = _HEAD + """
+<div class="ed-bar">
+  <span class="ed-brand">&#x270F;&#xFE0F; Mis Ejercicios</span>
+  """ + _TABS + """
+</div>
+<header><nav><a href="/" class="logo">AstroDojo</a></nav></header>
+<main>
+  <section class="topic-header">
+    <a href="{{ url_for('index') }}" class="breadcrumb">&larr; Mis Ejercicios</a>
+    <h1>Todos los ejercicios</h1>
+    <p style="color:#8b949e;margin-top:.3rem;">
+      {{ exercises|length }} ejercicio{{ 's' if exercises|length != 1 }} en todos los temas.
+    </p>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="ed-flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if exercises %}
+  <section class="filters">
+    <div class="filter-group">
+      <input type="text" id="search-input" class="search-input"
+             placeholder="Buscar por ID, fuente, subtema…">
     </div>
     {% if anios|length > 1 %}
     <div class="filter-group">
@@ -504,84 +790,13 @@ INDEX_TPL = _HEAD + """
     </div>
     {% endif %}
   </section>
-
-  <div class="card-grid" id="exercise-grid">
-    {% for ex in exercises %}
-    <a href="{{ url_for('edit_detail', exercise_id=ex._id) }}"
-       class="ed-card-wrap"
-       data-anio="{{ ex.anio|default('') }}"
-       data-dificultad="{{ ex.dificultad|default('') }}"
-       data-tema="{{ ex.tema|default('') }}"
-       data-etapa="{{ ex.etapa|default('') }}"
-       data-nivel="{{ ex.nivel|default('') }}"
-       data-subtemas="{{ ex.subtemas|default([])|join(',') }}"
-       data-id="{{ ex._id }}"
-       data-fuente="{{ ex.fuente|default('') }}">
-      <div class="card exercise-card">
-        {% if ex._imagen %}
-        <div class="card-img-wrapper">
-          <img src="{{ url_for('ex_image', path=ex._rel + '/' + ex._imagen) }}"
-               alt="{{ ex._id }}" loading="lazy">
-        </div>
-        {% else %}
-        <div class="placeholder-img">Sin imagen</div>
-        {% endif %}
-        <div class="card-body">
-          {% if ex.dificultad %}
-          <span class="badge badge-{{ ex.dificultad }}">{{ ex.dificultad|title }}</span>
-          {% else %}
-          <span class="badge no-dif">Sin dificultad</span>
-          {% endif %}
-          <span class="badge badge-etapa">{{ ex.etapa|default('')|title }}</span>
-          <span class="badge badge-anio">{{ ex.anio|default('') }}</span>
-          {% if ex.nivel is defined and ex.nivel %}
-          <span class="badge" style="background:#21262d;color:#8b949e;">{{ ex.nivel }}</span>
-          {% endif %}
-          <div class="subtemas">
-            {% for s in ex.subtemas|default([]) %}
-            <span class="tag">{{ s|replace('-',' ')|title }}</span>
-            {% endfor %}
-          </div>
-          <p class="fuente">{{ ex.fuente|default('') }}</p>
-        </div>
-        <div class="ed-hover"><span>Editar</span></div>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-
-  <p id="no-results" class="hidden" style="text-align:center;color:#8b949e;padding:2rem;">
-    No se encontraron ejercicios con esos filtros.
-  </p>
-
+  """ + _CARD_GRID + """
   {% else %}
-    <div class="ed-empty">
-      <h2>No hay ejercicios locales nuevos</h2>
-      <p>Todavía no agregaste ningún ejercicio que no esté en el repositorio remoto.</p>
-      <ol>
-        <li>Agregá ejercicios con el wizard (<code>contribute/index.html</code>)
-            o con <code>python extract_exercises.py</code>.</li>
-        <li>Si usaste el wizard, corré <code>python import_exercises.py</code>
-            para mover los ejercicios a <code>exercises/</code>.</li>
-        <li>Volvé a abrir esta página para revisarlos.</li>
-      </ol>
-    </div>
-  {% endif %}
-
-  <div class="pr-guide">
-    <h3>¿Listo para enviar tu PR?</h3>
-    <ol>
-      <li>Revisá y editá tus ejercicios arriba (especialmente asigná la <strong>dificultad</strong>).</li>
-      <li>Hacé commit de tus cambios:<br>
-        <pre>git add exercises/
-git commit -m "Add exercises: descripción breve"</pre>
-      </li>
-      <li>Subí tu rama y abrí un Pull Request en GitHub:<br>
-        <pre>git push origin main
-# Luego abrí un PR en https://github.com/Tomy-Niepo/AstroDojo</pre>
-      </li>
-    </ol>
+  <div class="ed-empty">
+    <h2>No hay ejercicios locales nuevos</h2>
+    <p>Todavía no agregaste ningún ejercicio que no esté en el repositorio remoto.</p>
   </div>
+  {% endif %}
 </main>
 <script>
 (function () {
@@ -595,11 +810,11 @@ git commit -m "Add exercises: descripción breve"</pre>
     var visible = 0;
     cards.forEach(function (c) {
       var ok =
-        (active.anio  === 'all' || String(c.dataset.anio)  === active.anio) &&
-        (active.dif   === 'all' || c.dataset.dificultad    === active.dif) &&
-        (active.tema  === 'all' || c.dataset.tema          === active.tema) &&
-        (active.etapa === 'all' || c.dataset.etapa         === active.etapa) &&
-        (active.nivel === 'all' || c.dataset.nivel         === active.nivel) &&
+        (active.anio  === 'all' || String(c.dataset.anio) === active.anio) &&
+        (active.dif   === 'all' || c.dataset.dificultad   === active.dif) &&
+        (active.tema  === 'all' || c.dataset.tema         === active.tema) &&
+        (active.etapa === 'all' || c.dataset.etapa        === active.etapa) &&
+        (active.nivel === 'all' || c.dataset.nivel        === active.nivel) &&
         (!q ||
           c.dataset.id.toLowerCase().indexOf(q) !== -1 ||
           c.dataset.fuente.toLowerCase().indexOf(q) !== -1 ||
@@ -1263,14 +1478,51 @@ function submitBulk() {
 @app.route("/")
 def index():
     exercises = load_local_exercises()
-    anios, temas, etapas, niveles = _filter_values(exercises)
+    by_tema = {}
+    for ex in exercises:
+        by_tema.setdefault(ex.get("tema", ""), []).append(ex)
     return render_template_string(
         INDEX_TPL,
         exercises=exercises,
+        exercises_by_tema=by_tema,
+        total_count=len(exercises),
         page_title="Mis Ejercicios",
         topic_display=TOPIC_DISPLAY,
+        valid_temas=VALID_TEMAS,
         active_tab="index",
+    )
+
+
+@app.route("/topic/<tema>")
+def topic_page(tema):
+    if tema not in VALID_TEMAS:
+        return redirect(url_for("index"))
+    exercises = [ex for ex in load_local_exercises() if ex.get("tema") == tema]
+    subtemas = sorted({s for ex in exercises for s in ex.get("subtemas", [])})
+    anios, _, etapas, niveles = _filter_values(exercises)
+    return render_template_string(
+        TOPIC_TPL,
+        exercises=exercises,
+        tema=tema,
+        subtemas=subtemas,
+        anios=anios, etapas=etapas, niveles=niveles,
+        topic_display=TOPIC_DISPLAY,
+        page_title=TOPIC_DISPLAY.get(tema, tema),
+        active_tab="index",
+    )
+
+
+@app.route("/all")
+def all_exercises():
+    exercises = load_local_exercises()
+    anios, temas, etapas, niveles = _filter_values(exercises)
+    return render_template_string(
+        ALL_TPL,
+        exercises=exercises,
         anios=anios, temas=temas, etapas=etapas, niveles=niveles,
+        topic_display=TOPIC_DISPLAY,
+        page_title="Todos los ejercicios",
+        active_tab="index",
     )
 
 
