@@ -12,12 +12,10 @@ Usage:
 
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import yaml
 from flask import Flask, flash, redirect, render_template_string, request, send_file, url_for
-from werkzeug.utils import secure_filename
 
 from build import (
     REQUIRED_FIELDS,
@@ -48,37 +46,28 @@ def _git(*args, timeout=15):
 
 
 def get_local_exercise_ids():
-    """Return the set of exercise folder-name IDs that are locally new.
-
-    Covers three cases:
-      1. Untracked new folders/files  (contributor just created them)
-      2. Staged but not yet committed (after git add)
-      3. Committed locally but not yet pushed to origin
-    """
+    """Return the set of exercise folder-name IDs that are locally new."""
     ids = set()
 
-    # ── Case 1 & 2: untracked / staged ──────────────────────────────────────
     _, out, _ = _git("status", "--short", "-uall", "--", "exercises/")
     for line in out.splitlines():
         if len(line) < 4:
             continue
         code = line[:2].strip()
         path = line[3:].strip()
-        # "?" = untracked, "A" = newly staged — both mean new to git
         if not (code.startswith("?") or code == "A" or code == "AM"):
             continue
         parts = Path(path).parts
         if len(parts) >= 4 and parts[0] == "exercises":
             ids.add(parts[3])
 
-    # ── Case 3: in local commits not yet pushed ─────────────────────────────
     for remote_ref in ("origin/main", "origin/master"):
         rc, out, _ = _git(
             "log", "--name-only", "--pretty=format:",
             f"{remote_ref}..HEAD", "--", "exercises/",
         )
         if rc != 0:
-            continue  # remote ref doesn't exist
+            continue
         for line in out.splitlines():
             line = line.strip()
             if not line:
@@ -86,7 +75,7 @@ def get_local_exercise_ids():
             parts = Path(line).parts
             if len(parts) >= 4 and parts[0] == "exercises":
                 ids.add(parts[3])
-        break  # one remote ref was enough
+        break
 
     return ids
 
@@ -96,7 +85,6 @@ def get_local_exercise_ids():
 # ---------------------------------------------------------------------------
 
 def load_local_exercises():
-    """Load only locally-new exercises."""
     local_ids = get_local_exercise_ids()
     exercises = []
     for meta_path in sorted(EXERCISES_DIR.rglob("meta.yaml")):
@@ -115,7 +103,6 @@ def load_local_exercises():
 
 
 def find_local_exercise(exercise_id):
-    """Find a locally-new exercise by ID. Returns None if not found or not local."""
     local_ids = get_local_exercise_ids()
     if exercise_id not in local_ids:
         return None
@@ -164,8 +151,17 @@ def save_image(file_storage, dest_dir):
     file_storage.save(str(dest_dir / f"imagen{ext}"))
 
 
+def _filter_values(exercises):
+    """Compute unique filter values from a list of exercises."""
+    anios   = sorted({ex.get("anio")   for ex in exercises if ex.get("anio")},   reverse=True)
+    temas   = sorted({ex.get("tema")   for ex in exercises if ex.get("tema")})
+    etapas  = sorted({ex.get("etapa")  for ex in exercises if ex.get("etapa")})
+    niveles = sorted({ex.get("nivel")  for ex in exercises if ex.get("nivel")})
+    return anios, temas, etapas, niveles
+
+
 # ---------------------------------------------------------------------------
-# Shared CSS (mirrors the public site's look + edit panel styles)
+# Shared CSS
 # ---------------------------------------------------------------------------
 
 _CSS = """
@@ -179,12 +175,19 @@ _CSS = """
   position: sticky; top: 0; z-index: 300;
   background: rgba(10,12,18,.97); backdrop-filter: blur(12px);
   border-bottom: 2px solid #bc8cff;
-  display: flex; align-items: center; gap: .75rem;
-  padding: .5rem 1.5rem; flex-wrap: wrap;
+  display: flex; align-items: center; gap: .6rem;
+  padding: .45rem 1.25rem; flex-wrap: wrap;
 }
-.ed-bar .ed-brand { font-weight: 700; color: #bc8cff; font-size: .95rem; }
-.ed-bar a { color: #8b949e; font-size: .85rem; text-decoration: none; }
-.ed-bar a:hover { color: #e6edf3; }
+.ed-brand { font-weight: 700; color: #bc8cff; font-size: .92rem; margin-right: .25rem; }
+.ed-divider { color: #30363d; font-size: 1.1rem; margin: 0 .1rem; }
+.ed-tab {
+  padding: .28rem .8rem; border-radius: 6px; font-size: .83rem; font-weight: 500;
+  text-decoration: none; color: #8b949e; transition: background .12s, color .12s;
+}
+.ed-tab:hover { background: #21262d; color: #e6edf3; }
+.ed-tab.active { background: rgba(188,140,255,.15); color: #bc8cff; }
+.ed-bar .ed-link { color: #8b949e; font-size: .83rem; text-decoration: none; }
+.ed-bar .ed-link:hover { color: #e6edf3; }
 .ed-spacer { flex: 1; }
 .ed-ibtn {
   padding: .3rem .85rem; border-radius: 6px; border: none; cursor: pointer;
@@ -193,8 +196,10 @@ _CSS = """
 }
 .ed-ibtn-save { background: #238636; color: #fff; }
 .ed-ibtn-save:hover { background: #2ea043; }
-.ed-ibtn-del { background: #b91c1c; color: #fff; }
-.ed-ibtn-del:hover { background: #dc2626; }
+.ed-ibtn-del  { background: #b91c1c; color: #fff; }
+.ed-ibtn-del:hover  { background: #dc2626; }
+.ed-ibtn-bulk { background: #bc8cff; color: #000; }
+.ed-ibtn-bulk:hover { background: #d6afff; }
 
 /* ── Index cards ── */
 .ed-card-wrap { position: relative; display: block; text-decoration: none; color: inherit; }
@@ -213,9 +218,7 @@ _CSS = """
 .no-dif { background: #21262d; color: #8b949e; }
 
 /* ── Empty state ── */
-.ed-empty {
-  text-align: center; padding: 4rem 1rem; color: #8b949e;
-}
+.ed-empty { text-align: center; padding: 4rem 1rem; color: #8b949e; }
 .ed-empty h2 { color: #e6edf3; margin-bottom: .75rem; }
 .ed-empty code { background: #21262d; padding: .15rem .4rem; border-radius: 4px;
                   color: #bc8cff; font-size: .9rem; }
@@ -229,10 +232,8 @@ _CSS = """
   align-items: start;
 }
 @media (max-width: 780px) { .ed-detail { grid-template-columns: 1fr; } }
-
 .ed-preview .exercise-image img { max-width: 100%; border-radius: 8px; display: block; }
 .ed-preview .exercise-meta { display: flex; flex-wrap: wrap; gap: .4rem; margin: .75rem 0; }
-
 .ed-panel {
   background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem;
   display: flex; flex-direction: column; gap: 1.1rem;
@@ -325,6 +326,58 @@ details.ed-adv[open] summary::before { content: '▼  '; }
 .pr-guide pre { background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
                 padding: .75rem 1rem; margin-top: .5rem; overflow-x: auto;
                 font-size: .82rem; color: #3fb950; line-height: 1.6; }
+
+/* ── Bulk edit ── */
+.bulk-wrap { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.bulk-action-bar {
+  background: #161b22; border: 1px solid #bc8cff; border-radius: 8px;
+  padding: 1rem 1.25rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;
+}
+.bulk-action-bar .ba-field { display: flex; flex-direction: column; gap: .35rem; }
+.bulk-action-bar label {
+  font-size: .72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .07em; color: #8b949e;
+}
+.bulk-action-bar select,
+.bulk-action-bar input[type=text],
+.bulk-action-bar input[type=url] {
+  background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+  padding: .4rem .7rem; color: #e6edf3; font-size: .88rem; font-family: inherit; min-width: 220px;
+}
+.bulk-action-bar select:focus,
+.bulk-action-bar input:focus {
+  outline: none; border-color: #bc8cff; box-shadow: 0 0 0 3px rgba(188,140,255,.15);
+}
+.bulk-value-wrap { display: flex; flex-direction: column; gap: .35rem; }
+.bulk-dif-group { display: flex; gap: .35rem; flex-wrap: wrap; margin-top: .1rem; }
+
+.bulk-select-bar {
+  display: flex; gap: .75rem; align-items: center; font-size: .85rem; color: #8b949e;
+}
+.bulk-select-bar a { color: #bc8cff; text-decoration: none; cursor: pointer; font-size: .83rem; }
+.bulk-select-bar a:hover { text-decoration: underline; }
+#bulk-count { font-weight: 600; color: #e6edf3; }
+
+.bulk-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+.bulk-table th {
+  text-align: left; padding: .45rem .75rem; font-size: .7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .07em; color: #8b949e;
+  border-bottom: 2px solid #30363d; white-space: nowrap;
+}
+.bulk-table th:first-child { width: 36px; }
+.bulk-table td { padding: .5rem .75rem; border-bottom: 1px solid #21262d; vertical-align: middle; }
+.bulk-table tbody tr:hover td { background: #161b22; }
+.bulk-table tbody tr.row-hidden { display: none; }
+.bulk-table .col-id { font-family: monospace; font-size: .8rem; color: #bc8cff; }
+.bulk-table .col-sol { font-size: .78rem; color: #8b949e; max-width: 200px;
+                        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bulk-table .col-sol a { color: #58a6ff; text-decoration: none; }
+.bulk-table .col-sol a:hover { text-decoration: underline; }
+.bulk-no-results {
+  text-align: center; color: #8b949e; padding: 2.5rem 1rem; font-size: .9rem;
+}
+input[type=checkbox] { accent-color: #bc8cff; width: 14px; height: 14px; cursor: pointer; }
 </style>
 """
 
@@ -340,13 +393,21 @@ _HEAD = """<!DOCTYPE html>
 
 _FOOT = """</body></html>"""
 
+# Shared tab bar snippet — rendered inside the ed-bar
+_TABS = """
+<span class="ed-divider">|</span>
+<a href="{{ url_for('index') }}" class="ed-tab {{ 'active' if active_tab == 'index' }}">Mis Ejercicios</a>
+<a href="{{ url_for('bulk') }}" class="ed-tab {{ 'active' if active_tab == 'bulk' }}">Edición Masiva</a>
+"""
+
 # ---------------------------------------------------------------------------
 # Templates
 # ---------------------------------------------------------------------------
 
 INDEX_TPL = _HEAD + """
 <div class="ed-bar">
-  <span class="ed-brand">✏️ Mis Ejercicios</span>
+  <span class="ed-brand">✏&#xFE0F; Mis Ejercicios</span>
+  """ + _TABS + """
 </div>
 <header><nav><a href="/" class="logo">AstroDojo</a></nav></header>
 <main>
@@ -368,42 +429,115 @@ INDEX_TPL = _HEAD + """
   {% endwith %}
 
   {% if exercises %}
-    <div class="card-grid">
-      {% for ex in exercises %}
-      <a href="{{ url_for('edit_detail', exercise_id=ex._id) }}"
-         class="ed-card-wrap">
-        <div class="card exercise-card">
-          {% if ex._imagen %}
-          <div class="card-img-wrapper">
-            <img src="{{ url_for('ex_image', path=ex._rel + '/' + ex._imagen) }}"
-                 alt="{{ ex._id }}" loading="lazy">
-          </div>
-          {% else %}
-          <div class="placeholder-img">Sin imagen</div>
-          {% endif %}
-          <div class="card-body">
-            {% if ex.dificultad %}
-            <span class="badge badge-{{ ex.dificultad }}">{{ ex.dificultad|title }}</span>
-            {% else %}
-            <span class="badge no-dif">Sin dificultad</span>
-            {% endif %}
-            <span class="badge badge-etapa">{{ ex.etapa|default('')|title }}</span>
-            <span class="badge badge-anio">{{ ex.anio|default('') }}</span>
-            {% if ex.nivel is defined and ex.nivel %}
-            <span class="badge" style="background:#21262d;color:#8b949e;">{{ ex.nivel }}</span>
-            {% endif %}
-            <div class="subtemas">
-              {% for s in ex.subtemas|default([]) %}
-              <span class="tag">{{ s|replace('-',' ')|title }}</span>
-              {% endfor %}
-            </div>
-            <p class="fuente">{{ ex.fuente|default('') }}</p>
-          </div>
-          <div class="ed-hover"><span>Editar</span></div>
-        </div>
-      </a>
-      {% endfor %}
+
+  <section class="filters">
+    <div class="filter-group">
+      <input type="text" id="search-input" class="search-input" placeholder="Buscar por ID, fuente, subtema…">
     </div>
+    {% if anios|length > 1 %}
+    <div class="filter-group">
+      <h3>Año</h3>
+      <div class="filter-buttons" id="anio-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for a in anios %}
+        <button class="filter-btn" data-value="{{ a }}">{{ a }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <div class="filter-group">
+      <h3>Dificultad</h3>
+      <div class="filter-buttons" id="diff-filters">
+        <button class="filter-btn active" data-value="all">Todas</button>
+        <button class="filter-btn" data-value="facil">Fácil</button>
+        <button class="filter-btn" data-value="intermedio">Intermedio</button>
+        <button class="filter-btn" data-value="dificil">Difícil</button>
+        <button class="filter-btn" data-value="">Sin asignar</button>
+      </div>
+    </div>
+    {% if temas|length > 1 %}
+    <div class="filter-group">
+      <h3>Tema</h3>
+      <div class="filter-buttons" id="tema-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for t in temas %}
+        <button class="filter-btn" data-value="{{ t }}">{{ topic_display.get(t, t) }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if etapas|length > 1 %}
+    <div class="filter-group">
+      <h3>Etapa</h3>
+      <div class="filter-buttons" id="etapa-filters">
+        <button class="filter-btn active" data-value="all">Todas</button>
+        {% for e in etapas %}
+        <button class="filter-btn" data-value="{{ e }}">{{ e|title }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if niveles|length > 1 %}
+    <div class="filter-group">
+      <h3>Nivel</h3>
+      <div class="filter-buttons" id="nivel-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for n in niveles %}
+        <button class="filter-btn" data-value="{{ n }}">{{ n }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <div class="card-grid" id="exercise-grid">
+    {% for ex in exercises %}
+    <a href="{{ url_for('edit_detail', exercise_id=ex._id) }}"
+       class="ed-card-wrap"
+       data-anio="{{ ex.anio|default('') }}"
+       data-dificultad="{{ ex.dificultad|default('') }}"
+       data-tema="{{ ex.tema|default('') }}"
+       data-etapa="{{ ex.etapa|default('') }}"
+       data-nivel="{{ ex.nivel|default('') }}"
+       data-subtemas="{{ ex.subtemas|default([])|join(',') }}"
+       data-id="{{ ex._id }}"
+       data-fuente="{{ ex.fuente|default('') }}">
+      <div class="card exercise-card">
+        {% if ex._imagen %}
+        <div class="card-img-wrapper">
+          <img src="{{ url_for('ex_image', path=ex._rel + '/' + ex._imagen) }}"
+               alt="{{ ex._id }}" loading="lazy">
+        </div>
+        {% else %}
+        <div class="placeholder-img">Sin imagen</div>
+        {% endif %}
+        <div class="card-body">
+          {% if ex.dificultad %}
+          <span class="badge badge-{{ ex.dificultad }}">{{ ex.dificultad|title }}</span>
+          {% else %}
+          <span class="badge no-dif">Sin dificultad</span>
+          {% endif %}
+          <span class="badge badge-etapa">{{ ex.etapa|default('')|title }}</span>
+          <span class="badge badge-anio">{{ ex.anio|default('') }}</span>
+          {% if ex.nivel is defined and ex.nivel %}
+          <span class="badge" style="background:#21262d;color:#8b949e;">{{ ex.nivel }}</span>
+          {% endif %}
+          <div class="subtemas">
+            {% for s in ex.subtemas|default([]) %}
+            <span class="tag">{{ s|replace('-',' ')|title }}</span>
+            {% endfor %}
+          </div>
+          <p class="fuente">{{ ex.fuente|default('') }}</p>
+        </div>
+        <div class="ed-hover"><span>Editar</span></div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <p id="no-results" class="hidden" style="text-align:center;color:#8b949e;padding:2rem;">
+    No se encontraron ejercicios con esos filtros.
+  </p>
 
   {% else %}
     <div class="ed-empty">
@@ -434,13 +568,63 @@ git commit -m "Add exercises: descripción breve"</pre>
     </ol>
   </div>
 </main>
+<script>
+(function () {
+  var active = { anio: 'all', dif: 'all', tema: 'all', etapa: 'all', nivel: 'all' };
+  var search = '';
+  var cards = document.querySelectorAll('.ed-card-wrap');
+  var noResults = document.getElementById('no-results');
+
+  function applyFilters() {
+    var q = search.toLowerCase();
+    var visible = 0;
+    cards.forEach(function (c) {
+      var ok =
+        (active.anio  === 'all' || String(c.dataset.anio)  === active.anio) &&
+        (active.dif   === 'all' || c.dataset.dificultad    === active.dif) &&
+        (active.tema  === 'all' || c.dataset.tema          === active.tema) &&
+        (active.etapa === 'all' || c.dataset.etapa         === active.etapa) &&
+        (active.nivel === 'all' || c.dataset.nivel         === active.nivel) &&
+        (!q ||
+          c.dataset.id.toLowerCase().indexOf(q) !== -1 ||
+          c.dataset.fuente.toLowerCase().indexOf(q) !== -1 ||
+          c.dataset.subtemas.toLowerCase().indexOf(q) !== -1);
+      c.style.display = ok ? '' : 'none';
+      if (ok) visible++;
+    });
+    if (noResults) noResults.classList.toggle('hidden', visible > 0);
+  }
+
+  function bindGroup(groupId, key) {
+    var el = document.getElementById(groupId);
+    if (!el) return;
+    el.querySelectorAll('.filter-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        el.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        active[key] = btn.dataset.value;
+        applyFilters();
+      });
+    });
+  }
+
+  bindGroup('anio-filters',  'anio');
+  bindGroup('diff-filters',  'dif');
+  bindGroup('tema-filters',  'tema');
+  bindGroup('etapa-filters', 'etapa');
+  bindGroup('nivel-filters', 'nivel');
+
+  var si = document.getElementById('search-input');
+  if (si) si.addEventListener('input', function () { search = si.value; applyFilters(); });
+})();
+</script>
 """ + _FOOT
 
 
 EDIT_TPL = _HEAD + """
 <div class="ed-bar">
-  <span class="ed-brand">✏️ Mis Ejercicios</span>
-  <a href="{{ url_for('index') }}">← Mis Ejercicios</a>
+  <span class="ed-brand">✏&#xFE0F; Mis Ejercicios</span>
+  """ + _TABS + """
   <span class="ed-spacer"></span>
   <button form="ed-form" type="submit" class="ed-ibtn ed-ibtn-save">Guardar cambios</button>
   <form method="post" action="{{ url_for('edit_delete', exercise_id=meta._id) }}"
@@ -644,7 +828,7 @@ function addTag(val) {
   var btn = document.getElementById('ed-add-btn');
   var span = document.createElement('span');
   span.className = 'ed-tag';
-  span.innerHTML = val + ' <button type="button" onclick="removeTag(this)">×</button>'
+  span.innerHTML = val + ' <button type="button" onclick="removeTag(this)">x</button>'
     + '<input type="hidden" name="subtemas_list" value="' + val.replace(/"/g, '&quot;') + '">';
   row.insertBefore(span, btn);
 }
@@ -669,6 +853,376 @@ function resetTagInput() {
 """ + _FOOT
 
 
+BULK_TPL = _HEAD + """
+<div class="ed-bar">
+  <span class="ed-brand">✏&#xFE0F; Mis Ejercicios</span>
+  """ + _TABS + """
+  <span class="ed-spacer"></span>
+  <button type="button" class="ed-ibtn ed-ibtn-bulk" onclick="submitBulk()">Aplicar a seleccionados</button>
+</div>
+<header><nav><a href="{{ url_for('index') }}" class="logo">AstroDojo</a></nav></header>
+<main>
+  <section class="topic-header">
+    <h1>Edición Masiva</h1>
+    <p style="color:#8b949e;margin-top:.3rem;">
+      Filtrá, seleccioná ejercicios y aplicá un cambio a todos a la vez.
+    </p>
+  </section>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="ed-flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  {% if exercises %}
+
+  <!-- Filters -->
+  <section class="filters">
+    <div class="filter-group">
+      <input type="text" id="bulk-search" class="search-input" placeholder="Buscar por ID, fuente, subtema…">
+    </div>
+    {% if anios|length > 1 %}
+    <div class="filter-group">
+      <h3>Año</h3>
+      <div class="filter-buttons" id="b-anio-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for a in anios %}
+        <button class="filter-btn" data-value="{{ a }}">{{ a }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    <div class="filter-group">
+      <h3>Dificultad</h3>
+      <div class="filter-buttons" id="b-diff-filters">
+        <button class="filter-btn active" data-value="all">Todas</button>
+        <button class="filter-btn" data-value="facil">Fácil</button>
+        <button class="filter-btn" data-value="intermedio">Intermedio</button>
+        <button class="filter-btn" data-value="dificil">Difícil</button>
+        <button class="filter-btn" data-value="">Sin asignar</button>
+      </div>
+    </div>
+    {% if temas|length > 1 %}
+    <div class="filter-group">
+      <h3>Tema</h3>
+      <div class="filter-buttons" id="b-tema-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for t in temas %}
+        <button class="filter-btn" data-value="{{ t }}">{{ topic_display.get(t, t) }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if etapas|length > 1 %}
+    <div class="filter-group">
+      <h3>Etapa</h3>
+      <div class="filter-buttons" id="b-etapa-filters">
+        <button class="filter-btn active" data-value="all">Todas</button>
+        {% for e in etapas %}
+        <button class="filter-btn" data-value="{{ e }}">{{ e|title }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if niveles|length > 1 %}
+    <div class="filter-group">
+      <h3>Nivel</h3>
+      <div class="filter-buttons" id="b-nivel-filters">
+        <button class="filter-btn active" data-value="all">Todos</button>
+        {% for n in niveles %}
+        <button class="filter-btn" data-value="{{ n }}">{{ n }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <div class="bulk-wrap">
+
+    <!-- Bulk action bar -->
+    <div class="bulk-action-bar">
+      <div class="ba-field">
+        <label>Campo a editar</label>
+        <select id="bulk-field" onchange="onFieldChange()">
+          <option value="solucion">URL Solución</option>
+          <option value="dificultad">Dificultad</option>
+          <option value="fuente">Fuente</option>
+          <option value="subtemas_add">Agregar subtemas (a los existentes)</option>
+          <option value="subtemas_replace">Reemplazar subtemas</option>
+          <option value="nivel">Nivel</option>
+          <option value="modalidad">Modalidad</option>
+        </select>
+      </div>
+
+      <div class="ba-field bulk-value-wrap" id="value-wrap">
+        <label id="value-label">Valor</label>
+        <!-- URL / text input (shown for most fields) -->
+        <input type="url"  id="bulk-val-url"  placeholder="https://…" style="display:none;">
+        <input type="text" id="bulk-val-text" placeholder="valor…">
+        <!-- Dificultad button group (shown for dificultad) -->
+        <div class="bulk-dif-group" id="bulk-dif-group" style="display:none;">
+          <label class="dif-lbl d-facil">
+            <input type="radio" name="bulk-dif-radio" value="facil" hidden>Fácil
+          </label>
+          <label class="dif-lbl d-inter">
+            <input type="radio" name="bulk-dif-radio" value="intermedio" hidden>Intermedio
+          </label>
+          <label class="dif-lbl d-dific">
+            <input type="radio" name="bulk-dif-radio" value="dificil" hidden>Difícil
+          </label>
+          <label class="dif-lbl d-none">
+            <input type="radio" name="bulk-dif-radio" value="" hidden>Sin asignar
+          </label>
+        </div>
+        <!-- Nivel select (shown for nivel) -->
+        <select id="bulk-val-nivel" style="display:none;">
+          <option value="">—</option>
+          <option value="N1">N1</option>
+          <option value="N2">N2</option>
+          <option value="N3">N3</option>
+          <option value="N4">N4</option>
+        </select>
+        <!-- Modalidad select -->
+        <select id="bulk-val-modalidad" style="display:none;">
+          <option value="">—</option>
+          <option value="individual">Individual</option>
+          <option value="grupal">Grupal</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Selection bar -->
+    <div class="bulk-select-bar">
+      <input type="checkbox" id="select-all" onchange="toggleAll(this.checked)">
+      <label for="select-all" style="cursor:pointer;color:#e6edf3;">Seleccionar todos los visibles</label>
+      <span style="color:#30363d;">|</span>
+      <span><span id="bulk-count">0</span> seleccionados</span>
+      <a onclick="clearAll()">Limpiar selección</a>
+    </div>
+
+    <!-- Exercise table -->
+    <form id="bulk-form" method="post" action="{{ url_for('bulk') }}">
+      <input type="hidden" name="field" id="field-hidden">
+      <input type="hidden" name="value" id="value-hidden">
+      <table class="bulk-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>ID</th>
+            <th>Año</th>
+            <th>Tema</th>
+            <th>Dif.</th>
+            <th>Etapa</th>
+            <th>Nivel</th>
+            <th>Subtemas</th>
+            <th>Solución</th>
+          </tr>
+        </thead>
+        <tbody id="bulk-tbody">
+          {% for ex in exercises %}
+          <tr data-anio="{{ ex.anio|default('') }}"
+              data-dificultad="{{ ex.dificultad|default('') }}"
+              data-tema="{{ ex.tema|default('') }}"
+              data-etapa="{{ ex.etapa|default('') }}"
+              data-nivel="{{ ex.nivel|default('') }}"
+              data-subtemas="{{ ex.subtemas|default([])|join(',') }}"
+              data-id="{{ ex._id }}"
+              data-fuente="{{ ex.fuente|default('') }}">
+            <td><input type="checkbox" name="ids" value="{{ ex._id }}" onchange="updateCount()"></td>
+            <td class="col-id">
+              <a href="{{ url_for('edit_detail', exercise_id=ex._id) }}"
+                 style="color:#bc8cff;text-decoration:none;" title="Editar individualmente">{{ ex._id }}</a>
+            </td>
+            <td>{{ ex.anio|default('') }}</td>
+            <td style="font-size:.82rem;">{{ topic_display.get(ex.tema, ex.tema|default('')) }}</td>
+            <td>
+              {% if ex.dificultad == 'facil' %}
+              <span style="color:#3fb950;font-size:.8rem;font-weight:600;">Fácil</span>
+              {% elif ex.dificultad == 'intermedio' %}
+              <span style="color:#d29922;font-size:.8rem;font-weight:600;">Medio</span>
+              {% elif ex.dificultad == 'dificil' %}
+              <span style="color:#f85149;font-size:.8rem;font-weight:600;">Difícil</span>
+              {% else %}
+              <span style="color:#484f58;font-size:.8rem;">—</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.82rem;">{{ ex.etapa|default('')|title }}</td>
+            <td style="font-size:.82rem;color:#8b949e;">{{ ex.nivel|default('') }}</td>
+            <td style="font-size:.78rem;color:#8b949e;">
+              {{ ex.subtemas|default([])|join(', ') or '—' }}
+            </td>
+            <td class="col-sol">
+              {% if ex.solucion %}
+              <a href="{{ ex.solucion }}" target="_blank" title="{{ ex.solucion }}">✓ Ver</a>
+              {% else %}
+              <span style="color:#484f58;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div id="bulk-no-results" class="bulk-no-results" style="display:none;">
+        No hay ejercicios que coincidan con los filtros.
+      </div>
+    </form>
+
+  </div>
+
+  {% else %}
+    <div class="ed-empty">
+      <h2>No hay ejercicios locales nuevos</h2>
+      <p>Agregá ejercicios primero y luego volvé a esta página.</p>
+    </div>
+  {% endif %}
+</main>
+<script>
+// ── Filter state ──
+var bActive = { anio: 'all', dif: 'all', tema: 'all', etapa: 'all', nivel: 'all' };
+var bSearch = '';
+var rows = document.querySelectorAll('#bulk-tbody tr');
+var noRes = document.getElementById('bulk-no-results');
+
+function applyBulkFilters() {
+  var q = bSearch.toLowerCase();
+  var visible = 0;
+  rows.forEach(function (r) {
+    var ok =
+      (bActive.anio  === 'all' || String(r.dataset.anio)  === bActive.anio) &&
+      (bActive.dif   === 'all' || r.dataset.dificultad    === bActive.dif) &&
+      (bActive.tema  === 'all' || r.dataset.tema          === bActive.tema) &&
+      (bActive.etapa === 'all' || r.dataset.etapa         === bActive.etapa) &&
+      (bActive.nivel === 'all' || r.dataset.nivel         === bActive.nivel) &&
+      (!q ||
+        r.dataset.id.toLowerCase().indexOf(q) !== -1 ||
+        r.dataset.fuente.toLowerCase().indexOf(q) !== -1 ||
+        r.dataset.subtemas.toLowerCase().indexOf(q) !== -1);
+    r.classList.toggle('row-hidden', !ok);
+    if (ok) visible++;
+  });
+  noRes.style.display = visible === 0 ? '' : 'none';
+  // uncheck hidden rows
+  document.querySelectorAll('#bulk-tbody tr.row-hidden input[type=checkbox]').forEach(function (cb) {
+    cb.checked = false;
+  });
+  updateCount();
+  document.getElementById('select-all').checked = false;
+}
+
+function bindBulkGroup(groupId, key) {
+  var el = document.getElementById(groupId);
+  if (!el) return;
+  el.querySelectorAll('.filter-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      el.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      bActive[key] = btn.dataset.value;
+      applyBulkFilters();
+    });
+  });
+}
+bindBulkGroup('b-anio-filters',  'anio');
+bindBulkGroup('b-diff-filters',  'dif');
+bindBulkGroup('b-tema-filters',  'tema');
+bindBulkGroup('b-etapa-filters', 'etapa');
+bindBulkGroup('b-nivel-filters', 'nivel');
+
+var bs = document.getElementById('bulk-search');
+if (bs) bs.addEventListener('input', function () { bSearch = bs.value; applyBulkFilters(); });
+
+// ── Select / count ──
+function visibleRows() {
+  return Array.from(rows).filter(function (r) { return !r.classList.contains('row-hidden'); });
+}
+function updateCount() {
+  var n = document.querySelectorAll('#bulk-tbody input[type=checkbox]:checked').length;
+  document.getElementById('bulk-count').textContent = n;
+}
+function toggleAll(checked) {
+  visibleRows().forEach(function (r) {
+    r.querySelector('input[type=checkbox]').checked = checked;
+  });
+  updateCount();
+}
+function clearAll() {
+  document.querySelectorAll('#bulk-tbody input[type=checkbox]').forEach(function (cb) { cb.checked = false; });
+  document.getElementById('select-all').checked = false;
+  updateCount();
+}
+
+// ── Field switching ──
+function onFieldChange() {
+  var field = document.getElementById('bulk-field').value;
+  var labels = {
+    'solucion':         'URL de Solución',
+    'dificultad':       'Dificultad',
+    'fuente':           'Fuente',
+    'subtemas_add':     'Subtemas a agregar (separados por coma)',
+    'subtemas_replace': 'Nuevos subtemas (separados por coma)',
+    'nivel':            'Nivel',
+    'modalidad':        'Modalidad',
+  };
+  document.getElementById('value-label').textContent = labels[field] || 'Valor';
+
+  var urlInp    = document.getElementById('bulk-val-url');
+  var textInp   = document.getElementById('bulk-val-text');
+  var difGroup  = document.getElementById('bulk-dif-group');
+  var nivelSel  = document.getElementById('bulk-val-nivel');
+  var modalSel  = document.getElementById('bulk-val-modalidad');
+
+  urlInp.style.display   = 'none';
+  textInp.style.display  = 'none';
+  difGroup.style.display = 'none';
+  nivelSel.style.display = 'none';
+  modalSel.style.display = 'none';
+
+  if (field === 'solucion') {
+    urlInp.style.display = '';
+  } else if (field === 'dificultad') {
+    difGroup.style.display = '';
+  } else if (field === 'nivel') {
+    nivelSel.style.display = '';
+  } else if (field === 'modalidad') {
+    modalSel.style.display = '';
+  } else {
+    textInp.style.display = '';
+  }
+}
+onFieldChange(); // init
+
+// ── Submit ──
+function getBulkValue() {
+  var field = document.getElementById('bulk-field').value;
+  if (field === 'solucion') return document.getElementById('bulk-val-url').value.trim();
+  if (field === 'dificultad') {
+    var r = document.querySelector('input[name="bulk-dif-radio"]:checked');
+    return r ? r.value : '';
+  }
+  if (field === 'nivel')    return document.getElementById('bulk-val-nivel').value;
+  if (field === 'modalidad') return document.getElementById('bulk-val-modalidad').value;
+  return document.getElementById('bulk-val-text').value.trim();
+}
+
+function submitBulk() {
+  var checked = document.querySelectorAll('#bulk-tbody input[type=checkbox]:checked');
+  if (checked.length === 0) {
+    alert('Seleccioná al menos un ejercicio.');
+    return;
+  }
+  var field = document.getElementById('bulk-field').value;
+  var value = getBulkValue();
+  if (!value && field !== 'dificultad' && field !== 'nivel' && field !== 'modalidad') {
+    if (!confirm('El valor está vacío. ¿Continuar de todas formas?')) return;
+  }
+  document.getElementById('field-hidden').value = field;
+  document.getElementById('value-hidden').value  = value;
+  document.getElementById('bulk-form').submit();
+}
+</script>
+""" + _FOOT
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
@@ -676,11 +1230,14 @@ function resetTagInput() {
 @app.route("/")
 def index():
     exercises = load_local_exercises()
+    anios, temas, etapas, niveles = _filter_values(exercises)
     return render_template_string(
         INDEX_TPL,
         exercises=exercises,
         page_title="Mis Ejercicios",
         topic_display=TOPIC_DISPLAY,
+        active_tab="index",
+        anios=anios, temas=temas, etapas=etapas, niveles=niveles,
     )
 
 
@@ -698,6 +1255,7 @@ def edit_detail(exercise_id):
             topic_display=TOPIC_DISPLAY,
             valid_temas=VALID_TEMAS,
             valid_etapa=VALID_ETAPA,
+            active_tab="index",
         )
 
     # POST — save
@@ -791,6 +1349,109 @@ def edit_delete(exercise_id):
         pass
     flash(f"Eliminado: {exercise_id}.", "success")
     return redirect(url_for("index"))
+
+
+@app.route("/bulk", methods=["GET", "POST"])
+def bulk():
+    exercises = load_local_exercises()
+    anios, temas, etapas, niveles = _filter_values(exercises)
+    ctx = dict(
+        exercises=exercises,
+        page_title="Edición Masiva",
+        topic_display=TOPIC_DISPLAY,
+        active_tab="bulk",
+        anios=anios, temas=temas, etapas=etapas, niveles=niveles,
+    )
+
+    if request.method == "GET":
+        return render_template_string(BULK_TPL, **ctx)
+
+    # POST — apply bulk edit
+    ids   = request.form.getlist("ids")
+    field = request.form.get("field", "").strip()
+    value = request.form.get("value", "").strip()
+
+    if not ids:
+        flash("No se seleccionó ningún ejercicio.", "error")
+        return render_template_string(BULK_TPL, **ctx)
+    if not field:
+        flash("Campo inválido.", "error")
+        return render_template_string(BULK_TPL, **ctx)
+
+    local_ids = get_local_exercise_ids()
+    updated_count = 0
+    skipped = []
+
+    for eid in ids:
+        if eid not in local_ids:
+            skipped.append(eid)
+            continue
+        meta = find_local_exercise(eid)
+        if not meta:
+            skipped.append(eid)
+            continue
+
+        # Build updated meta (preserve all existing keys, mutate only the target field)
+        folder = Path(meta["_folder"])
+        current = {k: v for k, v in meta.items() if not k.startswith("_")}
+
+        if field == "solucion":
+            if value:
+                current["solucion"] = value
+            else:
+                current.pop("solucion", None)
+
+        elif field == "dificultad":
+            if value:
+                current["dificultad"] = value
+            else:
+                current.pop("dificultad", None)
+
+        elif field == "fuente":
+            current["fuente"] = value
+
+        elif field == "subtemas_add":
+            new_tags = [t.strip().lower() for t in value.split(",") if t.strip()]
+            existing = current.get("subtemas") or []
+            merged = list(existing)
+            for t in new_tags:
+                if t not in merged:
+                    merged.append(t)
+            current["subtemas"] = merged
+
+        elif field == "subtemas_replace":
+            current["subtemas"] = [t.strip().lower() for t in value.split(",") if t.strip()]
+
+        elif field == "nivel":
+            if value:
+                current["nivel"] = value
+            else:
+                current.pop("nivel", None)
+
+        elif field == "modalidad":
+            if value:
+                current["modalidad"] = value
+            else:
+                current.pop("modalidad", None)
+
+        else:
+            skipped.append(eid)
+            continue
+
+        with open(folder / "meta.yaml", "w", encoding="utf-8") as f:
+            yaml.dump(current, f, allow_unicode=True, default_flow_style=False)
+        updated_count += 1
+
+    if updated_count:
+        flash(f"Actualizado {updated_count} ejercicio(s).", "success")
+    if skipped:
+        flash(f"Omitidos (no locales o no encontrados): {', '.join(skipped)}", "error")
+
+    # Reload exercises after edit
+    exercises = load_local_exercises()
+    anios, temas, etapas, niveles = _filter_values(exercises)
+    ctx.update(exercises=exercises, anios=anios, temas=temas, etapas=etapas, niveles=niveles)
+    return render_template_string(BULK_TPL, **ctx)
 
 
 @app.route("/exercises-img/<path:path>")
