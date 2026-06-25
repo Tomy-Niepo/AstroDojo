@@ -407,8 +407,8 @@ git push
       var subtemas = subRaw ? subRaw.split(",").map(function (s) { return s.trim().toLowerCase(); }) : [];
 
       var num = String(numero).padStart(2, "0");
-      // ID: <anio>-<etapa>[-<modalidad>][-<nivel>]-ej<numero>
-      var id = anio + "-" + etapa;
+      // ID: <institucion>-<anio>-<etapa>[-<modalidad>][-<nivel>]-ej<numero>
+      var id = inst + "-" + anio + "-" + etapa;
       if (modalidad) id += "-" + modalidad;
       if (nivel) id += "-" + nivel;
       id += "-ej" + num;

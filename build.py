@@ -44,10 +44,10 @@ FORMULAS_DIR = Path("formulas")
 def build_exercise_id(meta):
     """Build a canonical exercise ID from metadata fields.
 
-    Format: <anio>-<etapa>[-<modalidad>][-<nivel>]-ej<numero>
-    Example: 2025-nacional-grupal-N1-ej03
+    Format: <institucion>-<anio>-<etapa>[-<modalidad>][-<nivel>]-ej<numero>
+    Example: olimpiada-argentina-2025-nacional-grupal-N1-ej03
     """
-    parts = [str(meta["anio"]), meta["etapa"]]
+    parts = [meta["institucion"], str(meta["anio"]), meta["etapa"]]
     if meta.get("modalidad"):
         parts.append(meta["modalidad"])
     if meta.get("nivel"):
