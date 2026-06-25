@@ -1,10 +1,12 @@
 anio: 2021
+dificultad: intermedio
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2021, Examen Final Nacional
 institucion: olimpiada-argentina
 modalidad: individual
 nivel: N1
 numero: 4
+solucion: http://oaa.oac.unc.edu.ar/wp-content/blogs.dir/8/files/sites/8/2022/05/Sol_D_FIN_2021.pdf
 subtemas:
 - magnitud aparente
 - magnitud absoluta

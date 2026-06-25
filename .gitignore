@@ -10,3 +10,5 @@ node_modules/
 .env
 admin.py
 new-exercises/
+exams-pdfs/
+_batch_extract.py

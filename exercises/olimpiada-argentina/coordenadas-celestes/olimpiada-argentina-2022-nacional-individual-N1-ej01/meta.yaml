@@ -1,10 +1,12 @@
 anio: 2022
+dificultad: facil
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2022, Examen Final Nacional
 institucion: olimpiada-argentina
 modalidad: individual
 nivel: N1
 numero: 1
+solucion: http://oaa.oac.unc.edu.ar/wp-content/blogs.dir/8/files/sites/8/2023/08/Sol_D_FIN_2022.pdf
 subtemas:
 - paralaje
 - parsec

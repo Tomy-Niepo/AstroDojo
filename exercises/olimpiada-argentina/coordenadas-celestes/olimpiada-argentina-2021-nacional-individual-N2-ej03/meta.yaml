@@ -1,13 +1,16 @@
 anio: 2021
+dificultad: intermedio
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2021, Examen Final Nacional
 institucion: olimpiada-argentina
 modalidad: individual
 nivel: N2
 numero: 3
+solucion: http://oaa.oac.unc.edu.ar/wp-content/blogs.dir/8/files/sites/8/2022/05/Sol_D_FIN_2021.pdf
 subtemas:
 - ángulo horario
 - declinación
 - latitud
 - horas de luz
+- trigonometria esferica
 tema: coordenadas-celestes

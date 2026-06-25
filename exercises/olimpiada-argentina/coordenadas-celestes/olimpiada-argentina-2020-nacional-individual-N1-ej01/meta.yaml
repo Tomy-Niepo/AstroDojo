@@ -1,12 +1,13 @@
 anio: 2020
+dificultad: intermedio
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2020, Examen Final Nacional
 institucion: olimpiada-argentina
 modalidad: individual
 nivel: N1
 numero: 1
+solucion: http://oaa.oac.unc.edu.ar/wp-content/blogs.dir/8/files/sites/8/2021/03/Sol_D_FIN_2020.pdf
 subtemas:
-- ocultación
-- tamaño angular
 - período orbital
+- diámetro angular
 tema: coordenadas-celestes

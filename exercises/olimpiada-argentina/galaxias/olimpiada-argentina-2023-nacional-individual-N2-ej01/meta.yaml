@@ -1,12 +1,14 @@
 anio: 2023
+dificultad: dificil
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2023, Examen Final Nacional
 institucion: olimpiada-argentina
 modalidad: individual
 nivel: N2
 numero: 1
+solucion: http://oaa.oac.unc.edu.ar/wp-content/blogs.dir/8/files/sites/8/2023/11/Sol_D_FIN_2023.pdf
 subtemas:
-- corrimiento al rojo
 - espectro
 - velocidad radial
+- efecto doppler
 tema: galaxias

@@ -1,12 +1,13 @@
 anio: 2024
+dificultad: facil
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2024, Examen Final Nacional
 institucion: olimpiada-argentina
 modalidad: individual
 nivel: N2
 numero: 3
+solucion: http://oaa.oac.unc.edu.ar/wp-content/blogs.dir/8/files/sites/8/2024/11/Sol_D_FIN_2024.pdf
 subtemas:
-- stefan-boltzmann
 - ley de wien
 - radio estelar
-tema: astrofisica
+tema: radiacion
