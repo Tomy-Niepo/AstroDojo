@@ -327,6 +327,21 @@ details.ed-adv[open] summary::before { content: '▼  '; }
                 padding: .75rem 1rem; margin-top: .5rem; overflow-x: auto;
                 font-size: .82rem; color: #3fb950; line-height: 1.6; }
 
+/* ── Tema tile grid ── */
+.tema-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: .3rem;
+}
+.tema-lbl {
+  padding: .3rem .4rem; border-radius: 6px; border: 2px solid #30363d;
+  cursor: pointer; font-size: .72rem; font-weight: 500; text-align: center;
+  background: #0d1117; color: #8b949e; transition: all .12s; user-select: none;
+  line-height: 1.25; display: flex; align-items: center; justify-content: center;
+  min-height: 2.1rem;
+}
+.tema-lbl:has(input:checked) { color: #bc8cff; background: rgba(188,140,255,.1); border-color: #bc8cff; }
+.tema-lbl:hover { border-color: #bc8cff; color: #bc8cff; }
+.tema-lbl:has(input:checked):hover { border-color: #bc8cff; }
+
 /* ── Bulk edit ── */
 .bulk-wrap { display: flex; flex-direction: column; gap: 1.5rem; }
 
@@ -697,6 +712,19 @@ EDIT_TPL = _HEAD + """
       <div class="ed-panel">
         <h2 style="font-size:1rem;color:#8b949e;margin-top:0;">Editar</h2>
 
+        <!-- Tema -->
+        <div class="ed-field">
+          <label>Tema</label>
+          <div class="tema-grid">
+            {% for t in valid_temas|sort %}
+            <label class="tema-lbl">
+              <input type="radio" name="tema" value="{{ t }}" hidden
+                {{ 'checked' if t == meta.tema }}>{{ topic_display.get(t, t) }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
         <!-- Dificultad -->
         <div class="ed-field">
           <label>Dificultad</label>
@@ -759,16 +787,8 @@ EDIT_TPL = _HEAD + """
 
         <!-- Advanced -->
         <details class="ed-adv">
-          <summary>Campos avanzados (tema, año, etapa, modalidad…)</summary>
+          <summary>Campos avanzados (año, etapa, modalidad…)</summary>
           <div class="ed-adv-grid">
-            <div class="ed-field">
-              <label>Tema</label>
-              <select name="tema">
-                {% for t in valid_temas|sort %}
-                <option value="{{ t }}" {{ 'selected' if t == meta.tema }}>{{ topic_display.get(t,t) }}</option>
-                {% endfor %}
-              </select>
-            </div>
             <div class="ed-field">
               <label>Institución</label>
               <input type="text" name="institucion" value="{{ meta.institucion|default('') }}" required>
@@ -947,6 +967,7 @@ BULK_TPL = _HEAD + """
         <select id="bulk-field" onchange="onFieldChange()">
           <option value="solucion">URL Solución</option>
           <option value="dificultad">Dificultad</option>
+          <option value="tema">Tema (categoría)</option>
           <option value="fuente">Fuente</option>
           <option value="subtemas_add">Agregar subtemas (a los existentes)</option>
           <option value="subtemas_replace">Reemplazar subtemas</option>
@@ -988,6 +1009,12 @@ BULK_TPL = _HEAD + """
           <option value="">—</option>
           <option value="individual">Individual</option>
           <option value="grupal">Grupal</option>
+        </select>
+        <!-- Tema select -->
+        <select id="bulk-val-tema" style="display:none;">
+          {% for t in valid_temas|sort %}
+          <option value="{{ t }}">{{ topic_display.get(t, t) }}</option>
+          {% endfor %}
         </select>
       </div>
     </div>
@@ -1157,6 +1184,7 @@ function onFieldChange() {
   var labels = {
     'solucion':         'URL de Solución',
     'dificultad':       'Dificultad',
+    'tema':             'Tema (categoría)',
     'fuente':           'Fuente',
     'subtemas_add':     'Subtemas a agregar (separados por coma)',
     'subtemas_replace': 'Nuevos subtemas (separados por coma)',
@@ -1170,12 +1198,14 @@ function onFieldChange() {
   var difGroup  = document.getElementById('bulk-dif-group');
   var nivelSel  = document.getElementById('bulk-val-nivel');
   var modalSel  = document.getElementById('bulk-val-modalidad');
+  var temaSel   = document.getElementById('bulk-val-tema');
 
   urlInp.style.display   = 'none';
   textInp.style.display  = 'none';
   difGroup.style.display = 'none';
   nivelSel.style.display = 'none';
   modalSel.style.display = 'none';
+  temaSel.style.display  = 'none';
 
   if (field === 'solucion') {
     urlInp.style.display = '';
@@ -1185,6 +1215,8 @@ function onFieldChange() {
     nivelSel.style.display = '';
   } else if (field === 'modalidad') {
     modalSel.style.display = '';
+  } else if (field === 'tema') {
+    temaSel.style.display = '';
   } else {
     textInp.style.display = '';
   }
@@ -1201,6 +1233,7 @@ function getBulkValue() {
   }
   if (field === 'nivel')    return document.getElementById('bulk-val-nivel').value;
   if (field === 'modalidad') return document.getElementById('bulk-val-modalidad').value;
+  if (field === 'tema')     return document.getElementById('bulk-val-tema').value;
   return document.getElementById('bulk-val-text').value.trim();
 }
 
@@ -1359,6 +1392,7 @@ def bulk():
         exercises=exercises,
         page_title="Edición Masiva",
         topic_display=TOPIC_DISPLAY,
+        valid_temas=VALID_TEMAS,
         active_tab="bulk",
         anios=anios, temas=temas, etapas=etapas, niveles=niveles,
     )
@@ -1421,6 +1455,24 @@ def bulk():
 
         elif field == "subtemas_replace":
             current["subtemas"] = [t.strip().lower() for t in value.split(",") if t.strip()]
+
+        elif field == "tema":
+            if value and value in VALID_TEMAS:
+                old_tema = current.get("tema", "")
+                current["tema"] = value
+                # Move the folder if tema changed
+                if value != old_tema:
+                    new_folder = EXERCISES_DIR / current.get("institucion", "") / value / eid
+                    new_folder.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(folder), str(new_folder))
+                    try:
+                        folder.parent.rmdir()
+                    except OSError:
+                        pass
+                    folder = new_folder
+            else:
+                skipped.append(eid)
+                continue
 
         elif field == "nivel":
             if value:
