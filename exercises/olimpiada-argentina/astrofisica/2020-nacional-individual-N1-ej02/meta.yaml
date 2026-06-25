@@ -1,4 +1,5 @@
 anio: 2020
+dificultad: facil
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2020, Examen Final Nacional
 institucion: olimpiada-argentina
@@ -7,6 +8,5 @@ nivel: N1
 numero: 2
 subtemas:
 - magnitud absoluta
-- diámetro real
 - cúmulos globulares
 tema: astrofisica

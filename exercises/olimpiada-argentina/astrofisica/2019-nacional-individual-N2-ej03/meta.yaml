@@ -1,4 +1,5 @@
 anio: 2019
+dificultad: intermedio
 etapa: nacional
 fuente: Olimpiada Argentina de Astronomía 2019, Examen Final Nacional
 institucion: olimpiada-argentina
@@ -6,7 +7,6 @@ modalidad: individual
 nivel: N2
 numero: 3
 subtemas:
-- rotación solar
 - manchas solares
 - velocidad angular
 tema: astrofisica
